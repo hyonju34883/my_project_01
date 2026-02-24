@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CATZ RUN 캣츠런 - 음성 조작 러너</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+  <style>
+    :root {
+      --cat-primary: #FF9F43;
+      --cat-secondary: #EE5A24;
+      --cat-accent: #F8B500;
+      --bg-gradient: linear-gradient(180deg, #FFF5E6 0%, #FFE4C4 50%, #FFDAB9 100%);
+      --shadow: 0 4px 20px rgba(238, 90, 36, 0.2);
+      --radius: 20px;
+      --font: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ========== 공통: 화면 전환 ========== */
+    .screen {
+      display: none;
+      min-height: 100vh;
+      padding: 24px;
+      animation: fadeIn 0.4s ease;
+    }
+    .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ========== 1. 인트로 ========== */
+    .intro {
+      text-align: center;
+    }
+    .intro-logo {
+      font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: 800;
+      color: var(--cat-secondary);
+      text-shadow: 3px 3px 0 var(--cat-accent);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .intro-tagline {
+      font-size: clamp(0.9rem, 3vw, 1.1rem);
+      color: #666;
+      margin-bottom: 40px;
+    }
+    .intro-cat {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 32px;
+      background: linear-gradient(145deg, var(--cat-primary), var(--cat-secondary));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 72px;
+      box-shadow: var(--shadow);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    .intro-desc {
+      max-width: 320px;
+      font-size: 0.95rem;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .btn-start {
+      padding: 16px 48px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--cat-secondary), var(--cat-primary));
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-start:hover { transform: scale(1.05); box-shadow: 0 6px 24px rgba(238,90,36,0.35); }
+
+    /* ========== 2. 온보딩 ========== */
+    .onboarding { max-width: 420px; width: 100%; }
+    .onboarding h2 {
+      font-size: 1.5rem;
+      color: var(--cat-secondary);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .onboarding p.sub { color: #666; font-size: 0.9rem; text-align: center; margin-bottom: 24px; }
+    .voice-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .voice-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      border: 2px solid transparent;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .voice-card.highlight { border-color: var(--cat-primary); transform: scale(1.02); }
+    .voice-card .icon { font-size: 2rem; margin-bottom: 8px; }
+    .voice-card .cmd { font-weight: 700; color: var(--cat-secondary); font-size: 0.95rem; }
+    .voice-card .action { font-size: 0.8rem; color: #666; }
+    .mic-demo {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .mic-circle {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #eee, #fff);
+      border: 4px solid var(--cat-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,159,67,0.4); }
+      50% { box-shadow: 0 0 0 16px rgba(255,159,67,0); }
+    }
+    .mic-hint { font-size: 0.85rem; color: #888; }
+    .btn-next { width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; color: #fff; background: linear-gradient(135deg, var(--cat-secondary), var(--cat-primary)); border: none; border-radius: 50px; cursor: pointer; }
+
+    /* ========== 3. 모드 선택 ========== */
+    .mode-select h2 { font-size: 1.5rem; color: var(--cat-secondary); margin-bottom: 24px; text-align: center; }
+    .mode-cards { display: flex; flex-direction: column; gap: 16px; max-width: 360px; width: 100%; }
+    .mode-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .mode-card:hover { border-color: var(--cat-accent); transform: translateX(4px); }
+    .mode-card .emoji { font-size: 2.5rem; }
+    .mode-card .title { font-weight: 700; color: #333; font-size: 1.1rem; }
+    .mode-card .desc { font-size: 0.85rem; color: #666; margin-top: 4px; }
+    .mode-card.classic .emoji { filter: none; }
+    .mode-card.loud .emoji { filter: saturate(1.2); }
+    .mode-card.whisper .emoji { filter: contrast(0.9); }
+
+    /* ========== 4. 게임 플레이 ========== */
+    .gameplay-wrap { width: 100%; max-width: 480px; }
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 0 8px;
+    }
+    .game-score { font-size: 1.25rem; font-weight: 700; color: var(--cat-secondary); }
+    .game-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    .game-stats span { background: #fff; padding: 4px 10px; border-radius: 20px; }
+    .game-canvas-wrap {
+      background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 40%, #FFF5E6 100%);
+      border-radius: var(--radius);
+      overflow: hidden;
+      aspect-ratio: 16/10;
+      position: relative;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      width: 100%;
+    }
+    .game-ground {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 24%;
+      background: linear-gradient(180deg, #8B7355 0%, #6B5344 100%);
+      border-top: 4px solid #5D4E37;
+    }
+    .game-cat {
+      position: absolute;
+      left: 12%;
+      bottom: 24%;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(145deg, var(--cat-primary), var(--cat-secondary));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      transition: none;
+      z-index: 2;
+      will-change: transform;
+    }
+    .game-cat.jump { transform: translateY(-95px); transition: transform 0.22s ease-out; }
+    .game-cat.jump.jump-short { transform: translateY(-42px); transition: transform 0.14s ease-out; }
+    .game-cat.slide {
+      transform: scale(0.55) translateY(14px);
+      border-radius: 28px 28px 8px 8px;
+      transition: transform 0.4s ease-out;
+    }
+    .game-cat.punch {
+      transform: translateX(16px) scale(1.05);
+      transition: transform 0.08s ease-out;
+    }
+    .game-cat.punch::after {
+      content: '👊';
+      position: absolute;
+      left: 85%;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 28px;
+      animation: punchPop 0.25s ease-out;
+    }
+    @keyframes punchPop {
+      0% { transform: translateY(-50%) scale(0.5); opacity: 0.5; }
+      70% { transform: translateY(-50%) scale(1.2); }
+      100% { transform: translateY(-50%) scale(1); opacity: 1; }
+    }
+    .obstacle {
+      position: absolute;
+      bottom: 24%;
+      right: 100%;
+      width: 40px;
+      height: 44px;
+      background: #555;
+      border-radius: 8px;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      will-change: right;
+    }
+    .obstacle.hit {
+      animation: obstacleHit 0.3s ease-out forwards;
+    }
+    @keyframes obstacleHit {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.8; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+    .voice-indicator {
+      margin-top: 16px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .voice-bar {
+      flex: 1;
+      height: 24px;
+      background: #eee;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .voice-bar-fill {
+      height: 100%;
+      width: 30%;
+      background: linear-gradient(90deg, var(--cat-primary), var(--cat-secondary));
+      border-radius: 12px;
+      transition: width 0.1s ease;
+    }
+    .voice-cmd-text { font-size: 0.9rem; color: #666; min-width: 80px; }
+    .voice-cmd-text.active { font-weight: 700; color: var(--cat-secondary); }
+
+    /* ========== 5. 결과 화면 ========== */
+    .result { text-align: center; max-width: 400px; }
+    .result-emoji { font-size: 4rem; margin-bottom: 16px; }
+    .result-title { font-size: 1.75rem; font-weight: 800; color: var(--cat-secondary); margin-bottom: 8px; }
+    .result-score { font-size: 2.5rem; font-weight: 800; color: var(--cat-primary); margin-bottom: 24px; }
+    .result-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+    .result-actions button, .result-actions a {
+      display: block;
+      padding: 14px 24px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 50px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      border: none;
+      font-family: inherit;
+    }
+    .btn-replay { background: linear-gradient(135deg, var(--cat-secondary), var(--cat-primary)); color: #fff; }
+    .btn-share { background: #fff; color: var(--cat-secondary); border: 2px solid var(--cat-primary); }
+    .btn-achievement { background: #333; color: #fff; }
+    .result-achievements {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+    }
+    .result-achievements h3 { font-size: 0.9rem; color: #666; margin-bottom: 12px; }
+    .achievement-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .badge { background: #fff; padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .badge.unlocked { border: 2px solid var(--cat-accent); }
+
+    /* 업적 목록 모달 */
+    .achievement-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+    .achievement-modal.open { display: flex; }
+    .achievement-modal-inner {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 360px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .achievement-modal h3 { margin-bottom: 16px; color: var(--cat-secondary); }
+    .achievement-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .achievement-item:last-child { border-bottom: none; }
+    .achievement-item .icon { font-size: 1.5rem; }
+    .achievement-item .name { font-weight: 600; }
+    .achievement-item .cond { font-size: 0.8rem; color: #666; }
+    .achievement-item.locked { opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <!-- 1. 인트로 -->
+  <section id="intro" class="screen intro active">
+    <div class="intro-logo">CATZ RUN</div>
+    <p class="intro-tagline">캣츠런 · 음성으로 달리는 고양이</p>
+    <div class="intro-cat">🐱</div>
+    <p class="intro-desc">버튼 없이 목소리만으로 점프·슬라이드! 크게 말할수록 파워 업. 10~30초 숏플레이.</p>
+    <button type="button" class="btn-start" data-next="onboarding">시작하기</button>
+  </section>
+
+  <!-- 2. 온보딩 -->
+  <section id="onboarding" class="screen onboarding">
+    <h2>음성으로 조작해요</h2>
+    <p class="sub">말하면 고양이가 반응합니다. 크게 말할수록 파워 업!</p>
+    <div class="voice-cards">
+      <div class="voice-card"><div class="icon">🦘</div><div class="cmd">냐옹 (짧게)</div><div class="action">짧은 점프</div></div>
+      <div class="voice-card highlight"><div class="icon">🚀</div><div class="cmd">냐~~~~옹 (길게)</div><div class="action">긴 점프</div></div>
+      <div class="voice-card"><div class="icon">👊</div><div class="cmd">냥냥펀치</div><div class="action">장애물 펀치</div></div>
+      <div class="voice-card"><div class="icon">🐌</div><div class="cmd">슬라이드 / 굴러</div><div class="action">천천히 슬라이드</div></div>
+    </div>
+    <div class="mic-demo">
+      <div class="mic-circle">🎤</div>
+      <p class="mic-hint">"냐옹" 짧게/길게, "냥냥펀치", "슬라이드" 말해보세요</p>
+    </div>
+    <button type="button" class="btn-next" data-next="mode_select">다음</button>
+  </section>
+
+  <!-- 3. 모드 선택 -->
+  <section id="mode_select" class="screen mode-select">
+    <h2>모드를 선택하세요</h2>
+    <div class="mode-cards">
+      <div class="mode-card classic" data-mode="classic">
+        <span class="emoji">🏃</span>
+        <div>
+          <div class="title">클래식 모드</div>
+          <div class="desc">10~20초 기본 러너. 점프·슬라이드로 장애물 피하기</div>
+        </div>
+      </div>
+      <div class="mode-card loud" data-mode="loud">
+        <span class="emoji">🔥</span>
+        <div>
+          <div class="title">광기 모드</div>
+          <div class="desc">소리 클수록 속도 UP. 리액션 콘텐츠 추천</div>
+        </div>
+      </div>
+      <div class="mode-card whisper" data-mode="whisper">
+        <span class="emoji">🌙</span>
+        <div>
+          <div class="title">속삭임 모드</div>
+          <div class="desc">작게 말해야 인식. ASMR형 플레이</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 게임 플레이 -->
+  <section id="gameplay" class="screen">
+    <div class="gameplay-wrap">
+      <div class="game-header">
+        <span class="game-score">점수: <span id="gameScore">0</span></span>
+        <div class="game-stats">
+          <span>에너지 <span id="statEnergy">50</span>%</span>
+          <span>자신감 <span id="statConf">50</span>%</span>
+        </div>
+      </div>
+      <div class="game-canvas-wrap">
+        <div class="game-ground"></div>
+        <div id="gameCat" class="game-cat">🐱</div>
+        <div id="obstacle" class="obstacle">🪨</div>
+      </div>
+      <div class="voice-indicator">
+        <span id="voiceCmdText" class="voice-cmd-text">말해보세요</span>
+        <div class="voice-bar"><div id="voiceBarFill" class="voice-bar-fill" style="width: 20%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 결과 -->
+  <section id="result" class="screen result">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <h2 class="result-title" id="resultTitle">클리어!</h2>
+    <p class="result-score">점수 <span id="resultScore">0</span></p>
+    <div class="result-actions">
+      <button type="button" class="btn-replay" data-next="mode_select">다시 하기</button>
+      <button type="button" class="btn-share">공유하기</button>
+      <a href="#achievement" class="btn-achievement" id="btnAchievement">업적 보기</a>
+    </div>
+    <div class="result-achievements">
+      <h3>이번 플레이 업적</h3>
+      <div class="achievement-badges">
+        <span class="badge unlocked">🔥 고막 파괴자</span>
+        <span class="badge">🌙 속삭임 장인</span>
+        <span class="badge">⚡ 연속 10회</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 업적 모달 -->
+  <div id="achievementModal" class="achievement-modal">
+    <div class="achievement-modal-inner">
+      <h3>🏆 업적</h3>
+      <div class="achievement-item"><span class="icon">🔥</span><div><div class="name">고막 파괴자</div><div class="cond">평균 음성 80dB 이상</div></div></div>
+      <div class="achievement-item locked"><span class="icon">🌙</span><div><div class="name">속삭임 장인</div><div class="cond">속삭임 모드 50회 성공</div></div></div>
+      <div class="achievement-item locked"><span class="icon">⚡</span><div><div class="name">연속 성공</div><div class="cond">10연속 장애물 회피</div></div></div>
+      <div class="achievement-item locked"><span class="icon">😂</span><div><div class="name">멘붕</div><div class="cond">5회 오인식</div></div></div>
+      <button type="button" class="btn-next" style="margin-top:16px" onclick="document.getElementById('achievementModal').classList.remove('open')">닫기</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const screens = document.querySelectorAll('.screen');
+      function goTo(id) {
+        screens.forEach(s => s.classList.remove('active'));
+        const el = document.getElementById(id);
+        if (el) el.classList.add('active');
+      }
+
+      document.querySelectorAll('[data-next]').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const next = this.getAttribute('data-next');
+          if (next === 'gameplay') return;
+          goTo(next);
+        });
+      });
+
+      document.querySelectorAll('.mode-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const mode = this.getAttribute('data-mode');
+          goTo('gameplay');
+          startGame(mode);
+        });
+      });
+
+      document.querySelector('.btn-replay').addEventListener('click', function() {
+        goTo('mode_select');
+      });
+
+      document.getElementById('btnAchievement').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('achievementModal').classList.add('open');
+      });
+
+      let gameLoopId = null;
+      let recognition = null;
+
+      function startGame(mode) {
+        const wrap = document.querySelector('.game-canvas-wrap');
+        const cat = document.getElementById('gameCat');
+        const obstacle = document.getElementById('obstacle');
+        const scoreEl = document.getElementById('gameScore');
+        const voiceBar = document.getElementById('voiceBarFill');
+        const voiceCmd = document.getElementById('voiceCmdText');
+
+        if (gameLoopId != null) cancelAnimationFrame(gameLoopId);
+        if (recognition) try { recognition.stop(); } catch (_) {}
+
+        cat.classList.remove('jump', 'slide');
+        obstacle.style.right = '100%';
+        obstacle.textContent = '🪨';
+        let score = 0;
+        scoreEl.textContent = '0';
+        voiceCmd.textContent = '냐옹(짧/길) · 냥냥펀치 · 슬라이드!';
+
+        const OBSTACLE_SPEED = mode === 'loud' ? 0.35 : mode === 'whisper' ? 0.2 : 0.28;
+        const JUMP_SHORT_MS = 380;
+        const JUMP_LONG_MS = 620;
+        const SLIDE_MS = 1000;
+        const PUNCH_MS = 420;
+
+        let obstacleRight = 100;
+        let isJumping = false;
+        let isSliding = false;
+        let isPunching = false;
+        let jumpEndAt = 0;
+        let slideEndAt = 0;
+        let punchEndAt = 0;
+        let passed = false;
+        let obstacleIsHit = false;
+
+        function doJump(isLong) {
+          if (isSliding || isPunching) return;
+          isJumping = true;
+          cat.classList.remove('jump', 'jump-short');
+          cat.classList.add('jump');
+          if (!isLong) cat.classList.add('jump-short');
+          jumpEndAt = performance.now() + (isLong ? JUMP_LONG_MS : JUMP_SHORT_MS);
+        }
+        function doSlide() {
+          if (isJumping || isPunching) return;
+          isSliding = true;
+          slideEndAt = performance.now() + SLIDE_MS;
+          cat.classList.add('slide');
+          cat.classList.remove('jump', 'jump-short', 'punch');
+        }
+        function doPunch() {
+          if (isJumping || isSliding) return;
+          isPunching = true;
+          punchEndAt = performance.now() + PUNCH_MS;
+          cat.classList.add('punch');
+          cat.classList.remove('jump', 'jump-short', 'slide');
+        }
+
+        let obstacleIsHit = false;
+        let obstacleRespawnAt = 0;
+
+        function gameLoop(now) {
+          if (!wrap || !document.getElementById('gameplay').classList.contains('active')) {
+            return;
+          }
+          gameLoopId = requestAnimationFrame(gameLoop);
+
+          if (isJumping && now >= jumpEndAt) {
+            isJumping = false;
+            cat.classList.remove('jump', 'jump-short');
+          }
+          if (isSliding && now >= slideEndAt) {
+            isSliding = false;
+            cat.classList.remove('slide');
+          }
+          if (isPunching && now >= punchEndAt) {
+            isPunching = false;
+            cat.classList.remove('punch');
+          }
+
+          if (obstacleIsHit && now >= obstacleRespawnAt) {
+            obstacleIsHit = false;
+            obstacle.classList.remove('hit');
+            obstacleRight = 100;
+            obstacle.style.right = '100%';
+            obstacle.textContent = '🪨';
+            passed = false;
+          }
+
+          if (!obstacleIsHit) {
+            obstacleRight -= OBSTACLE_SPEED;
+            obstacle.style.right = obstacleRight + '%';
+          }
+
+          const catRect = cat.getBoundingClientRect();
+          const obsRect = obstacle.getBoundingClientRect();
+
+          if (isPunching && !obstacleIsHit && obstacleRight < 85 && obstacleRight > 5) {
+            const inPunchRange = obsRect.left < catRect.right + 50 && obsRect.right > catRect.left - 10;
+            if (inPunchRange) {
+              obstacleIsHit = true;
+              obstacleRespawnAt = now + 320;
+              obstacle.classList.add('hit');
+              obstacle.textContent = '💥';
+              passed = true;
+              score++;
+              scoreEl.textContent = score;
+            }
+          }
+
+          const catCenterX = catRect.left + catRect.width / 2;
+          const obsCenterX = obsRect.left + obsRect.width / 2;
+          const overlapX = Math.abs(catCenterX - obsCenterX) < (catRect.width / 2 + obsRect.width / 2);
+
+          if (overlapX && !obstacleIsHit) {
+            const safe = isJumping || isSliding || isPunching;
+            if (!safe) {
+              document.getElementById('resultScore').textContent = score;
+              document.getElementById('resultTitle').textContent = '게임 오버';
+              document.getElementById('resultEmoji').textContent = '😿';
+              goTo('result');
+              if (gameLoopId != null) cancelAnimationFrame(gameLoopId);
+              gameLoopId = null;
+              if (recognition) try { recognition.stop(); } catch (_) {}
+              return;
+            }
+            if (!passed) {
+              passed = true;
+              score++;
+              scoreEl.textContent = score;
+            }
+          } else if (!overlapX) {
+            passed = false;
+          }
+
+          if (obstacleRight < -15 && !obstacleIsHit) {
+            obstacleRight = 100;
+            obstacle.style.right = '100%';
+            passed = false;
+          }
+
+          if (voiceBar) voiceBar.style.width = (25 + Math.random() * 50) + '%';
+        }
+
+        gameLoopId = requestAnimationFrame(gameLoop);
+
+        document.addEventListener('keydown', function keyHandler(e) {
+          if (!document.getElementById('gameplay').classList.contains('active')) return;
+          if (e.code === 'Space') {
+            e.preventDefault();
+            doJump(true);
+          }
+          if (e.code === 'ArrowDown') {
+            e.preventDefault();
+            doSlide();
+          }
+          if (e.code === 'KeyF') {
+            e.preventDefault();
+            doPunch();
+          }
+        });
+
+        if (typeof webkitSpeechRecognition !== 'undefined' || typeof SpeechRecognition !== 'undefined') {
+          const SpeechRecognitionCtr = window.SpeechRecognition || window.webkitSpeechRecognition;
+          recognition = new SpeechRecognitionCtr();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'ko-KR';
+          recognition.onresult = function(e) {
+            const last = e.results.length - 1;
+            const text = (e.results[last][0].transcript || '').trim();
+            if (!e.results[last].isFinal) return;
+            const t = text.replace(/\s/g, '');
+            if (/[냐야][아오우이]*옹|야옹|냐옹/i.test(t)) {
+              const isLong = t.length > 4 || /[아오우이]{2,}|~+/.test(t);
+              doJump(isLong);
+              voiceCmd.textContent = isLong ? '긴 점프!' : '짧은 점프!';
+            }
+            if (/점프|높이|뛰어|뛰기/i.test(t) && !/[냐야].*옹/.test(t)) {
+              doJump(true);
+              voiceCmd.textContent = '점프!';
+            }
+            if (/냥냥?펀치|냥펀치/i.test(t)) {
+              doPunch();
+              voiceCmd.textContent = '냥펀치!';
+            }
+            if (/슬라이드|굴러|피해|냐아옹|미끄러/i.test(t)) {
+              doSlide();
+              voiceCmd.textContent = '슬라이드!';
+            }
+          };
+          try { recognition.start(); } catch (_) {}
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

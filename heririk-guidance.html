@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>헤리리크 가이던스 Q&A 데이터 관리</title>
+  <!-- Pretendard Variable: 로컬/다른 CDN에 Variable 있으면 적용됨. 없으면 아래 Pretendard(static) 사용 -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+      background: #fff;
+      color: #111;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    input, button, select, textarea { font-family: inherit; }
+
+    /* 공통: 테두리/모서리 통일 */
+    :root {
+      --border: 1px solid #e0e0e0;
+      --radius: 6px;
+      --radius-sm: 4px;
+      --text: #111;
+      --text-secondary: #555;
+      --bg-subtle: #f5f5f5;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: var(--border);
+    }
+    .logo { font-weight: 700; font-size: 1.125rem; letter-spacing: -0.02em; }
+    .logo-sub { font-size: 0.6875rem; color: var(--text-secondary); font-weight: 400; letter-spacing: 0; }
+    .nav { display: flex; align-items: center; gap: 24px; }
+    .nav a { font-size: 0.875rem; color: var(--text); }
+    .nav a.active { font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 16px; font-size: 0.875rem; }
+    .theme-btn { background: none; border: none; cursor: pointer; padding: 4px; font-size: 1.1rem; }
+
+    /* Main */
+    .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .page-title { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 24px; letter-spacing: -0.02em; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: var(--border); }
+    .tab {
+      padding: 10px 20px; cursor: pointer; font-size: 0.875rem; font-weight: 500; background: #fff;
+      border: var(--border); border-bottom: none; margin-bottom: -1px; border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .tab.active { background: #111; color: #fff; border-color: #111; }
+    .tab:not(.active):hover { background: var(--bg-subtle); }
+
+    /* Search + Test (검색 1줄, Q&A 테스트 1줄 - 세로 배치) */
+    .search-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding: 18px 20px;
+      background: var(--bg-subtle);
+      border-radius: var(--radius);
+      border: var(--border);
+    }
+    .search-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+    .search-row label { white-space: nowrap; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); }
+    select {
+      padding: 9px 12px; border: var(--border); border-radius: var(--radius-sm); font-size: 0.8125rem;
+      min-width: 100px; background: #fff;
+    }
+    .search-input-wrap { display: flex; flex: 1; min-width: 0; }
+    .search-input-wrap input {
+      flex: 1; padding: 9px 12px; border: var(--border); border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+    }
+    .search-input-wrap input::placeholder { color: #999; }
+    .btn-search {
+      padding: 9px 14px; border: var(--border); background: #fff; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 0.875rem;
+    }
+    .test-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+    .test-row .search-input-wrap { flex: 1; min-width: 0; }
+    .test-row .search-input-wrap input { min-width: 0; }
+    .test-label { white-space: nowrap; font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); }
+
+    /* Actions + Table header */
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .list-actions { display: flex; gap: 8px; }
+    .btn {
+      padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.8125rem; font-weight: 500;
+      cursor: pointer; border: var(--border); background: #fff;
+    }
+    .btn-primary { background: #111; color: #fff; border-color: #111; }
+    .btn-primary:hover { background: #333; border-color: #333; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-delete:not(:disabled):hover { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border: var(--border); border-radius: var(--radius); margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: var(--border); }
+    th { background: #111; color: #fff; font-weight: 600; font-size: 0.8125rem; }
+    th:first-child, td:first-child { width: 40px; text-align: center; }
+    td.answer { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+    tr:hover { background: var(--bg-subtle); }
+    tr:last-child td { border-bottom: none; }
+    .clickable { cursor: pointer; color: #2563eb; }
+    .clickable:hover { text-decoration: underline; }
+
+    /* 리스트 상단: 테이블 위에 "Q&A 데이터 목록" + 선택 개수 + 25개씩 보기 + 새로고침 */
+    .list-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .list-top .list-title { font-size: 0.9375rem; font-weight: 600; }
+    .list-top .list-controls-wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .selected-count { font-size: 0.8125rem; color: #dc2626; font-weight: 500; }
+    .list-controls { display: flex; align-items: center; gap: 10px; }
+    .list-controls select { padding: 6px 10px; font-size: 0.8125rem; border: var(--border); border-radius: var(--radius-sm); background: #fff; }
+    .btn-refresh { width: 32px; height: 32px; border: var(--border); background: #fff; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.875rem; }
+    .btn-refresh:hover { background: var(--bg-subtle); }
+
+    /* Pagination */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 20px; }
+    .pagination button {
+      min-width: 32px; height: 32px; border: var(--border); background: #fff; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 0.8125rem;
+    }
+    .pagination button:hover:not(:disabled) { background: var(--bg-subtle); }
+    .pagination button.active { background: #111; color: #fff; border-color: #111; }
+    .pagination button:disabled { opacity: 0.5; cursor: default; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.52); display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 24px; backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border: var(--border);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: var(--border); }
+    .modal-title { font-size: 1.125rem; font-weight: 700; }
+    .btn-close { background: none; border: none; font-size: 1.25rem; cursor: pointer; padding: 4px; line-height: 1; color: var(--text-secondary); }
+    .btn-close:hover { color: var(--text); }
+    .modal-body { padding: 24px; }
+    .field { margin-bottom: 20px; }
+    .field label { display: block; font-size: 0.8125rem; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+    .field input[type="text"], .field textarea {
+      width: 100%; padding: 10px 12px; border: var(--border); border-radius: var(--radius-sm);
+      font-size: 0.8125rem; font-family: inherit;
+    }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .field .hint { font-size: 0.75rem; color: #888; margin-top: 6px; }
+    .field .char-count { font-size: 0.75rem; color: #888; margin-top: 4px; text-align: right; }
+    .field .char-count.over { color: #dc2626; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: var(--border); }
+    .modal-footer .btn { min-width: 80px; }
+
+    /* Tags */
+    .tags-wrap {
+      border: var(--border); border-radius: var(--radius-sm); padding: 8px 12px; min-height: 42px;
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: #fff;
+    }
+    .tags-wrap:focus-within { outline: 2px solid #111; outline-offset: -1px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--bg-subtle);
+      border-radius: var(--radius-sm); font-size: 0.8125rem;
+    }
+    .tag-remove { background: none; border: none; cursor: pointer; padding: 0 2px; font-size: 1rem; line-height: 1; color: var(--text-secondary); }
+    .tag-remove:hover { color: #dc2626; }
+    .tags-container { display: contents; }
+    .tags-input { border: none; outline: none; flex: 1; min-width: 120px; font-size: 0.9rem; padding: 4px; }
+
+    /* Confirm modal */
+    .confirm-modal .modal { max-width: 400px; }
+    .confirm-modal .modal-body { padding: 24px; }
+    .confirm-modal .modal-footer { justify-content: center; gap: 12px; }
+    .confirm-modal .btn-cancel { background: #fff; border: 1px solid #ddd; }
+    .confirm-modal .btn-ok { background: #111; color: #fff; border: none; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: #111; color: #fff; padding: 12px 24px; border-radius: var(--radius); font-size: 0.8125rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 2000; opacity: 0; transition: transform 0.3s, opacity 0.3s;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* 탭 콘텐츠 전환 */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* 답변 품질 관리 전용 스타일 */
+    .quality-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .quality-filters select { padding: 6px 10px; font-size: 0.8125rem; border: var(--border); border-radius: var(--radius-sm); background: #fff; }
+    .status-badge {
+      display: inline-block; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 500;
+    }
+    .status-badge.error { background: #fee; color: #dc2626; }
+    .status-badge.pending { background: #fef3c7; color: #d97706; }
+    .status-badge.answered { background: #dbeafe; color: #2563eb; }
+    .status-badge.processed { background: #d1fae5; color: #059669; }
+    .status-badge.reflected { background: #e0e7ff; color: #6366f1; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">
+      LOSTARK<br>
+      <span class="logo-sub">Lostark Mobile AI Studio</span>
+    </div>
+    <nav class="nav">
+      <a href="#">Documents</a>
+      <a href="#" class="active">Heririk Guidance</a>
+    </nav>
+    <div class="header-right">
+      <a href="#">Login</a>
+      <button type="button" class="theme-btn" aria-label="테마">☀️</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <h1 class="page-title">헤리리크 가이던스 Q&A 데이터 관리</h1>
+
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="qa">Q&A 데이터 관리</button>
+      <button type="button" class="tab" data-tab="quality">답변 품질 관리</button>
+    </div>
+
+    <!-- Q&A 데이터 관리 탭 콘텐츠 -->
+    <div class="tab-content active" id="tabContentQa">
+    <section class="search-section">
+      <div class="search-row">
+        <label>검색 항목</label>
+        <select id="searchType">
+          <option value="all">전체</option>
+          <option value="question">대표 질문</option>
+          <option value="answer">답변</option>
+          <option value="keyword">키워드</option>
+        </select>
+        <div class="search-input-wrap">
+          <input type="text" id="searchKeyword" placeholder="검색어를 입력해주세요">
+          <button type="button" class="btn-search" id="btnSearch" aria-label="검색">🔍</button>
+        </div>
+      </div>
+      <div class="test-row">
+        <span class="test-label">Q&A 테스트</span>
+        <select id="testTop">
+          <option value="5">Top5</option>
+          <option value="10">Top10</option>
+        </select>
+        <div class="search-input-wrap">
+          <input type="text" id="testQuestion" placeholder="테스트할 질문을 입력해주세요 (예: 미니맵 어떻게 열어?)">
+          <button type="button" class="btn-search" id="btnTest" aria-label="테스트 실행">🔍</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="list-header">
+      <span></span>
+      <div class="list-actions">
+        <button type="button" class="btn btn-primary" id="btnNew">+ 신규 등록</button>
+        <button type="button" class="btn btn-delete" id="btnDelete" disabled>삭제</button>
+      </div>
+    </div>
+
+    <div class="list-top">
+      <h2 class="list-title">Q&A 데이터 목록</h2>
+      <div class="list-controls-wrap">
+        <span class="selected-count" id="selectedCount">선택된 질문 개수 0</span>
+        <div class="list-controls">
+          <select id="pageSize">
+            <option value="10">10개씩 보기</option>
+            <option value="25" selected>25개씩 보기</option>
+            <option value="50">50개씩 보기</option>
+            <option value="100">100개씩 보기</option>
+          </select>
+          <button type="button" class="btn-refresh" id="btnRefresh" aria-label="새로 고침">🔄</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="checkAll" aria-label="전체 선택"></th>
+            <th>대표 질문</th>
+            <th>답변</th>
+            <th>키워드</th>
+            <th>수정일</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr data-id="1">
+            <td><input type="checkbox" class="row-check"></td>
+            <td class="clickable edit-row">소드마스터</td>
+            <td class="answer clickable edit-answer" title="클릭하여 답변 수정">소드마스터는 검술과 환영술을 조화롭게 사용하는 근접 딜러예요. 섬광과 염화 두 가지 직업 각인으로 플레이 스타일을 선택할 수...</td>
+            <td>소드마스터</td>
+            <td>26.01.01</td>
+          </tr>
+          <tr data-id="2">
+            <td><input type="checkbox" class="row-check"></td>
+            <td class="clickable edit-row">세트 코어는 어디서 얻어?</td>
+            <td class="answer clickable edit-answer" title="클릭하여 답변 수정">세트 코어는 레이드 및 일일 퀘스트 보상으로 획득할 수 있습니다...</td>
+            <td>세트코어</td>
+            <td>26.01.01</td>
+          </tr>
+          <tr data-id="3">
+            <td><input type="checkbox" class="row-check"></td>
+            <td class="clickable edit-row">장비세트는 어디서 얻어?</td>
+            <td class="answer clickable edit-answer" title="클릭하여 답변 수정">장비세트는 던전 및 보스 드랍으로 획득 가능합니다...</td>
+            <td>장비세트</td>
+            <td>26.01.01</td>
+          </tr>
+          <tr data-id="4">
+            <td><input type="checkbox" class="row-check"></td>
+            <td class="clickable edit-row">미니맵 어떻게 열어?</td>
+            <td class="answer clickable edit-answer" title="클릭하여 답변 수정">미니맵 위치는 우측 상단에 위치해 있습니다.</td>
+            <td>미니맵</td>
+            <td>26.01.01</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" id="pagination">
+      <button type="button" data-page="first">«</button>
+      <button type="button" data-page="prev">‹</button>
+      <button type="button" class="active" data-page="1">1</button>
+      <button type="button" data-page="2">2</button>
+      <button type="button" data-page="3">3</button>
+      <span>...</span>
+      <button type="button" data-page="10">10</button>
+      <button type="button" data-page="next">›</button>
+      <button type="button" data-page="last">»</button>
+    </div>
+    </div>
+
+    <!-- 답변 품질 관리 탭 콘텐츠 -->
+    <div class="tab-content" id="tabContentQuality">
+      <section class="search-section">
+        <div class="search-row">
+          <label>검색 항목</label>
+          <select id="qualitySearchType">
+            <option value="all">전체</option>
+            <option value="question">대표 질문</option>
+            <option value="answer">답변</option>
+          </select>
+          <div class="search-input-wrap">
+            <input type="text" id="qualitySearchKeyword" placeholder="검색어를 입력해주세요">
+            <button type="button" class="btn-search" id="btnQualitySearch" aria-label="검색">🔍</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="list-header">
+        <span></span>
+        <div class="list-actions">
+          <button type="button" class="btn btn-primary" id="btnReflect" disabled>Q&A 반영</button>
+          <button type="button" class="btn btn-delete" id="btnQualityDelete" disabled>삭제</button>
+        </div>
+      </div>
+
+      <div class="list-top">
+        <h2 class="list-title">답변 품질 관리 목록</h2>
+        <div class="list-controls-wrap">
+          <span class="selected-count" id="qualitySelectedCount">선택된 질문 개수 0</span>
+          <div class="quality-filters">
+            <select id="qualityPageSize">
+              <option value="25" selected>25개씩 보기</option>
+              <option value="50">50개씩 보기</option>
+              <option value="100">100개씩 보기</option>
+              <option value="150">150개씩 보기</option>
+              <option value="200">200개씩 보기</option>
+            </select>
+            <select id="qualitySortBy">
+              <option value="newest" selected>최신순</option>
+              <option value="most-questions">유저 질문 많은 순</option>
+              <option value="week1">최근 1주일</option>
+              <option value="week2">최근 2주일</option>
+              <option value="month1">최근 1개월</option>
+            </select>
+            <select id="qualityStatusFilter">
+              <option value="all">전체</option>
+              <option value="error">오응답</option>
+              <option value="pending" selected>미처리</option>
+              <option value="answered">답변 완료</option>
+              <option value="processed">처리 완료</option>
+            </select>
+            <button type="button" class="btn-refresh" id="btnQualityRefresh" aria-label="새로 고침">🔄</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="qualityCheckAll" aria-label="전체 선택"></th>
+              <th>대표 질문</th>
+              <th>답변</th>
+              <th>응답 상태</th>
+              <th>처리 상태</th>
+            </tr>
+          </thead>
+          <tbody id="qualityTableBody">
+            <tr data-id="q1">
+              <td><input type="checkbox" class="quality-row-check"></td>
+              <td class="clickable view-detail">소드마스터</td>
+              <td class="answer clickable edit-answer" title="클릭하여 답변 수정">-</td>
+              <td><span class="status-badge pending">미처리</span></td>
+              <td>-</td>
+            </tr>
+            <tr data-id="q2">
+              <td><input type="checkbox" class="quality-row-check"></td>
+              <td class="clickable view-detail">세트 코어는 어디서 얻어?</td>
+              <td class="answer clickable edit-answer" title="클릭하여 답변 수정">-</td>
+              <td><span class="status-badge pending">미처리</span></td>
+              <td>-</td>
+            </tr>
+            <tr data-id="q3">
+              <td><input type="checkbox" class="quality-row-check"></td>
+              <td class="clickable view-detail">장비세트는 어디서 얻어?</td>
+              <td class="answer clickable edit-answer" title="클릭하여 답변 수정">-</td>
+              <td><span class="status-badge error">오응답</span></td>
+              <td>-</td>
+            </tr>
+            <tr data-id="q4">
+              <td><input type="checkbox" class="quality-row-check"></td>
+              <td class="clickable view-detail">각인서는 어떻게 사용해야해?</td>
+              <td class="answer clickable edit-answer" title="클릭하여 답변 수정">-</td>
+              <td><span class="status-badge error">오응답</span></td>
+              <td>-</td>
+            </tr>
+            <tr data-id="q5">
+              <td><input type="checkbox" class="quality-row-check"></td>
+              <td class="clickable view-detail">카오스 브레이크에서 어떻게 얻어?</td>
+              <td class="answer clickable edit-answer" title="클릭하여 답변 수정">카오스 브레이크에서 세트 코어는 스테이지를 클리어하거나 세트 효과 코어 아이템을 분해해서 얻을 수 있어요.</td>
+              <td>-</td>
+              <td><span class="status-badge answered">답변 완료</span></td>
+            </tr>
+            <tr data-id="q6">
+              <td><input type="checkbox" class="quality-row-check"></td>
+              <td class="clickable view-detail">미니맵 어떻게 열어?</td>
+              <td class="answer clickable edit-answer" title="클릭하여 답변 수정">미니맵 위치는 우측 상단에 위치해 있습니다.</td>
+              <td>-</td>
+              <td><span class="status-badge processed">처리 완료</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="qualityPagination">
+        <button type="button" data-page="first">«</button>
+        <button type="button" data-page="prev">‹</button>
+        <button type="button" class="active" data-page="1">1</button>
+        <button type="button" data-page="2">2</button>
+        <button type="button" data-page="3">3</button>
+        <span>...</span>
+        <button type="button" data-page="10">10</button>
+        <button type="button" data-page="next">›</button>
+        <button type="button" data-page="last">»</button>
+      </div>
+    </div>
+  </main>
+
+  <!--
+    [모달 목록] 총 5개
+    1. modalNew - 신규 Q&A 등록 → 완료 시 토스트: "신규 등록 완료 되었습니다."
+    2. modalEdit - 답변 수정 → 완료 시 토스트: "답변 수정 완료 되었습니다."
+    3. modalConfirm - 작성 중 닫기 확인: "작성 중인 내용이 저장되지 않습니다. 닫으시겠습니까?"
+    4. modalDeleteConfirm - 삭제 확인: "삭제 하시겠습니까?" → 확인 시 토스트: "삭제되었습니다."
+    5. modalDetail - 대표 질문 자세히 보기
+    [토스트] 신규 등록 완료 / 답변 수정 완료 / Q&A 반영 완료 / 삭제되었습니다.
+  -->
+  <!-- 신규 Q&A 등록 모달 -->
+  <div class="modal-overlay" id="modalNew" role="dialog" aria-labelledby="modalNewTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalNewTitle">신규 Q&A 등록</h2>
+        <button type="button" class="btn-close" id="closeNew" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="newQuestion">대표질문</label>
+          <input type="text" id="newQuestion" placeholder="질문을 입력해주세요" maxlength="200">
+          <div class="char-count" id="newQuestionCount">0 / 200</div>
+        </div>
+        <div class="field">
+          <label for="newAnswer">답변</label>
+          <textarea id="newAnswer" placeholder="답변을 입력해주세요 (1000자)" maxlength="1000"></textarea>
+          <div class="char-count" id="newAnswerCount">0 / 1,000</div>
+        </div>
+        <div class="field">
+          <label for="newKeywordsInput">키워드</label>
+          <div class="tags-wrap" id="newTagsWrap">
+            <div class="tags-container" id="newTagsContainer"></div>
+            <input type="text" id="newKeywordsInput" class="tags-input" placeholder="키워드를 입력해주세요.">
+          </div>
+          <p class="hint">* Enter 또는 쉼표(,)로 태그를 추가 합니다.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="cancelNew">취소</button>
+        <button type="button" class="btn btn-primary" id="saveNew" disabled>저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 답변 수정 모달 -->
+  <div class="modal-overlay" id="modalEdit" role="dialog" aria-labelledby="modalEditTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalEditTitle">답변 수정</h2>
+        <button type="button" class="btn-close" id="closeEdit" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editId">
+        <input type="hidden" id="editContext" value="qa">
+        <div class="field">
+          <label for="editQuestion">대표질문</label>
+          <input type="text" id="editQuestion" placeholder="질문을 입력해주세요" maxlength="200">
+          <div class="char-count" id="editQuestionCount">0 / 200</div>
+        </div>
+        <div class="field">
+          <label for="editAnswer">답변</label>
+          <textarea id="editAnswer" placeholder="답변을 입력해주세요" maxlength="1000"></textarea>
+          <div class="char-count" id="editAnswerCount">0 / 1,000</div>
+        </div>
+        <div class="field">
+          <label for="editKeywordsInput">키워드</label>
+          <div class="tags-wrap" id="editTagsWrap">
+            <div class="tags-container" id="editTagsContainer"></div>
+            <input type="text" id="editKeywordsInput" class="tags-input" placeholder="키워드를 입력해주세요.">
+          </div>
+          <p class="hint">* Enter 또는 쉼표(,)로 태그를 추가 합니다.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="cancelEdit">취소</button>
+        <button type="button" class="btn btn-primary" id="saveEdit">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 취소 확인 모달 (신규 등록/수정 모달 닫기) -->
+  <div class="modal-overlay confirm-modal" id="modalConfirm" role="dialog">
+    <div class="modal">
+      <div class="modal-body">
+        <p>작성 중인 내용이 저장되지 않습니다. 닫으시겠습니까?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-cancel" id="confirmCancel">취소</button>
+        <button type="button" class="btn btn-ok" id="confirmClose">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div class="modal-overlay confirm-modal" id="modalDeleteConfirm" role="dialog">
+    <div class="modal">
+      <div class="modal-body">
+        <p>삭제 하시겠습니까?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-cancel" id="deleteConfirmCancel">취소</button>
+        <button type="button" class="btn btn-ok btn-delete" id="deleteConfirmOk">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 대표 질문 자세히 보기 모달 -->
+  <div class="modal-overlay" id="modalDetail" role="dialog" aria-labelledby="modalDetailTitle">
+    <div class="modal" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalDetailTitle">대표 질문 자세히 보기</h2>
+        <button type="button" class="btn-close" id="closeDetail" aria-label="닫기">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 16px;">
+          작성하신 대표 질문에 유저들이 질문한 내용들을 조회해서 볼 수 있습니다.<br>
+          실제 유저들이 질문한 유저 질문들을 조회해 볼 수 있으며, 응답, 키워드 조회가 가능합니다.
+        </p>
+        <div class="field">
+          <label>대표질문</label>
+          <input type="text" id="detailQuestion" readonly style="background: var(--bg-subtle);">
+        </div>
+        <div style="margin-top: 20px;">
+          <div style="background: #111; color: #fff; padding: 12px 16px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; display: flex; justify-content: space-between; font-size: 0.8125rem; font-weight: 600;">
+            <span>유저 질문 데이터</span>
+            <span>답변</span>
+          </div>
+          <div style="border: var(--border); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tbody id="detailTableBody">
+                <tr style="background: #fff;">
+                  <td style="padding: 12px 16px; border-bottom: var(--border); font-size: 0.8125rem;">세트코어는 어떻게 구해?</td>
+                  <td style="padding: 12px 16px; border-bottom: var(--border); font-size: 0.8125rem; color: var(--text-secondary);">죄송합니다 해당 안내는 없어요</td>
+                </tr>
+                <tr style="background: var(--bg-subtle);">
+                  <td style="padding: 12px 16px; border-bottom: var(--border); font-size: 0.8125rem;">세트코어는 어디?</td>
+                  <td style="padding: 12px 16px; border-bottom: var(--border); font-size: 0.8125rem; color: var(--text-secondary);">세트 코어는 군단 침공에서 얻을 수 있어요</td>
+                </tr>
+                <tr style="background: #fff;">
+                  <td style="padding: 12px 16px; border-bottom: var(--border); font-size: 0.8125rem;">세트 코어 얻는 방법</td>
+                  <td style="padding: 12px 16px; border-bottom: var(--border); font-size: 0.8125rem; color: var(--text-secondary);">죄송합니다 해당 안내는 없어요</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" style="margin-top: 16px;">
+            <button type="button" data-page="first">«</button>
+            <button type="button" data-page="prev">‹</button>
+            <button type="button" class="active" data-page="1">1</button>
+            <button type="button" data-page="2">2</button>
+            <button type="button" data-page="3">3</button>
+            <span>...</span>
+            <button type="button" data-page="10">10</button>
+            <button type="button" data-page="next">›</button>
+            <button type="button" data-page="last">»</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="cancelDetail">취소</button>
+        <button type="button" class="btn btn-primary" id="confirmDetail">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" aria-live="polite">저장되었습니다.</div>
+
+  <script>
+    (function () {
+      const MAX_QUESTION = 200, MAX_ANSWER = 1000, MAX_TAG_LEN = 30, MAX_TAGS = 20;
+
+      // 탭 전환
+      document.querySelectorAll('.tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          const tabName = this.dataset.tab;
+          document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+          document.querySelectorAll('.tab-content').forEach(function (c) { c.classList.remove('active'); });
+          this.classList.add('active');
+          document.getElementById('tabContent' + (tabName === 'qa' ? 'Qa' : 'Quality')).classList.add('active');
+        });
+      });
+
+      // 선택 개수 (Q&A 데이터 관리)
+      function updateSelectedCount() {
+        const n = document.querySelectorAll('#tabContentQa .row-check:checked').length;
+        document.getElementById('selectedCount').textContent = '선택된 질문 개수 ' + n;
+        document.getElementById('btnDelete').disabled = n === 0;
+      }
+      const checkAll = document.getElementById('checkAll');
+      if (checkAll) {
+        checkAll.addEventListener('change', function () {
+          document.querySelectorAll('#tabContentQa .row-check').forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+          updateSelectedCount();
+        });
+      }
+      const tableBody = document.getElementById('tableBody');
+      if (tableBody) {
+        tableBody.addEventListener('change', function (e) {
+          if (e.target.classList.contains('row-check')) updateSelectedCount();
+        });
+      }
+
+      // 선택 개수 (답변 품질 관리)
+      function updateQualitySelectedCount() {
+        const n = document.querySelectorAll('#tabContentQuality .quality-row-check:checked').length;
+        document.getElementById('qualitySelectedCount').textContent = '선택된 질문 개수 ' + n;
+        document.getElementById('btnReflect').disabled = n === 0;
+        document.getElementById('btnQualityDelete').disabled = n === 0;
+      }
+      const qualityCheckAll = document.getElementById('qualityCheckAll');
+      if (qualityCheckAll) {
+        qualityCheckAll.addEventListener('change', function () {
+          document.querySelectorAll('#tabContentQuality .quality-row-check').forEach(function (cb) { cb.checked = this.checked; }.bind(this));
+          updateQualitySelectedCount();
+        });
+      }
+      const qualityTableBody = document.getElementById('qualityTableBody');
+      if (qualityTableBody) {
+        qualityTableBody.addEventListener('change', function (e) {
+          if (e.target.classList.contains('quality-row-check')) updateQualitySelectedCount();
+        });
+      }
+
+      // Q&A 반영 버튼
+      const btnReflect = document.getElementById('btnReflect');
+      if (btnReflect) {
+        btnReflect.addEventListener('click', function () {
+          const selected = Array.from(document.querySelectorAll('#tabContentQuality .quality-row-check:checked')).map(function (cb) {
+            return cb.closest('tr').dataset.id;
+          });
+          if (selected.length === 0) return;
+          // 선택된 항목을 Q&A 데이터 테이블로 이동 (데모)
+          selected.forEach(function (id) {
+            const row = document.querySelector('#tabContentQuality tr[data-id="' + id + '"]');
+            if (row) {
+              const cells = row.querySelectorAll('td');
+              const question = cells[1].textContent.trim();
+              const answer = cells[2].textContent.trim();
+              // 처리 상태를 "반영 완료"로 변경
+              if (cells[4]) {
+                cells[4].innerHTML = '<span class="status-badge reflected">반영 완료</span>';
+              }
+            }
+          });
+          showToast('Q&A 반영 완료 되었습니다.');
+          updateQualitySelectedCount();
+        });
+      }
+
+      // 새로고침
+      document.getElementById('btnRefresh').addEventListener('click', function () {
+        alert('현재 검색 조건으로 데이터를 다시 조회합니다.');
+      });
+
+      // 삭제 확인 모달 (삭제 하시겠습니까?)
+      var deleteModalContext = 'qa';
+      var modalDeleteConfirm = document.getElementById('modalDeleteConfirm');
+      document.getElementById('btnDelete').addEventListener('click', function () {
+        if (document.querySelectorAll('#tabContentQa .row-check:checked').length === 0) return;
+        deleteModalContext = 'qa';
+        modalDeleteConfirm.classList.add('open');
+      });
+      document.getElementById('btnQualityDelete').addEventListener('click', function () {
+        if (document.querySelectorAll('#tabContentQuality .quality-row-check:checked').length === 0) return;
+        deleteModalContext = 'quality';
+        modalDeleteConfirm.classList.add('open');
+      });
+      document.getElementById('deleteConfirmCancel').addEventListener('click', function () {
+        modalDeleteConfirm.classList.remove('open');
+      });
+      document.getElementById('deleteConfirmOk').addEventListener('click', function () {
+        if (deleteModalContext === 'qa') {
+          document.querySelectorAll('#tabContentQa .row-check:checked').forEach(function (cb) {
+            cb.closest('tr').remove();
+          });
+          document.getElementById('checkAll').checked = false;
+          updateSelectedCount();
+        } else {
+          document.querySelectorAll('#tabContentQuality .quality-row-check:checked').forEach(function (cb) {
+            cb.closest('tr').remove();
+          });
+          if (document.getElementById('qualityCheckAll')) document.getElementById('qualityCheckAll').checked = false;
+          updateQualitySelectedCount();
+        }
+        modalDeleteConfirm.classList.remove('open');
+        showToast('삭제되었습니다.');
+      });
+
+      // 토스트
+      function showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg || '';
+        el.classList.add('show');
+        setTimeout(function () { el.classList.remove('show'); }, 2500);
+      }
+
+      // 태그 유틸 (신규)
+      const newTags = [];
+      const newContainer = document.getElementById('newTagsContainer');
+      const newInput = document.getElementById('newKeywordsInput');
+
+      function addNewTag(text) {
+        const t = text.trim().slice(0, MAX_TAG_LEN);
+        if (!t) return;
+        if (newTags.length >= MAX_TAGS) return;
+        if (newTags.includes(t)) return;
+        newTags.push(t);
+        const span = document.createElement('span');
+        span.className = 'tag';
+        span.innerHTML = t + ' <button type="button" class="tag-remove" aria-label="제거">&times;</button>';
+        span.querySelector('.tag-remove').onclick = function () {
+          newTags.splice(newTags.indexOf(t), 1);
+          span.remove();
+        };
+        newContainer.appendChild(span);
+        newInput.value = '';
+      }
+
+      newInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); addNewTag(this.value); }
+      });
+      newInput.addEventListener('blur', function () { if (this.value.trim()) addNewTag(this.value); });
+      newInput.addEventListener('input', function (e) {
+        if (e.target.value.includes(',')) {
+          e.target.value.split(',').forEach(addNewTag);
+          e.target.value = '';
+        }
+      });
+
+      // 신규 모달
+      const modalNew = document.getElementById('modalNew');
+      const newQuestion = document.getElementById('newQuestion');
+      const newAnswer = document.getElementById('newAnswer');
+      const saveNew = document.getElementById('saveNew');
+
+      function isNewDirty() {
+        return newQuestion.value.trim() || newAnswer.value.trim() || newTags.length > 0;
+      }
+      function updateSaveNew() {
+        const q = newQuestion.value.trim(), a = newAnswer.value.trim();
+        const invalid = /^\s*$/.test(q) || /^\s*$/.test(a);
+        saveNew.disabled = invalid;
+      }
+      newQuestion.addEventListener('input', function () {
+        document.getElementById('newQuestionCount').textContent = this.value.length + ' / ' + MAX_QUESTION;
+        updateSaveNew();
+      });
+      newAnswer.addEventListener('input', function () {
+        document.getElementById('newAnswerCount').textContent = this.value.length + ' / ' + MAX_ANSWER;
+        updateSaveNew();
+      });
+
+      function openNewModal() {
+        newQuestion.value = '';
+        newAnswer.value = '';
+        newTags.length = 0;
+        newContainer.innerHTML = '';
+        newInput.value = '';
+        document.getElementById('newQuestionCount').textContent = '0 / ' + MAX_QUESTION;
+        document.getElementById('newAnswerCount').textContent = '0 / ' + MAX_ANSWER;
+        saveNew.disabled = true;
+        modalNew.classList.add('open');
+      }
+      function closeNewModal(force) {
+        if (!force && isNewDirty()) {
+          openConfirmModal(function () { modalNew.classList.remove('open'); document.getElementById('modalConfirm').classList.remove('open'); });
+          return;
+        }
+        modalNew.classList.remove('open');
+      }
+      document.getElementById('btnNew').addEventListener('click', openNewModal);
+      document.getElementById('closeNew').addEventListener('click', function () { closeNewModal(false); });
+      document.getElementById('cancelNew').addEventListener('click', function () { closeNewModal(false); });
+      document.getElementById('saveNew').addEventListener('click', function () {
+        var q = newQuestion.value.trim(), a = newAnswer.value.trim();
+        if (!q || !a) return;
+        // 리스트 최상단 반영 (데모: 첫 행 앞에 추가)
+        var tbody = document.getElementById('tableBody');
+        var newId = 'n' + Date.now();
+        var tr = document.createElement('tr');
+        tr.setAttribute('data-id', newId);
+        tr.innerHTML = '<td><input type="checkbox" class="row-check"></td><td class="clickable edit-row">' + q + '</td><td class="answer clickable edit-answer" title="클릭하여 답변 수정">' + a.slice(0, 60) + (a.length > 60 ? '...' : '') + '</td><td>' + newTags.join(', ') + '</td><td>' + (function () { var d = new Date(); return d.getFullYear().toString().slice(-2) + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0'); })() + '</td>';
+        tbody.insertBefore(tr, tbody.firstChild);
+        bindEditRow(tr);
+        closeNewModal(true);
+        showToast('신규 등록 완료 되었습니다.');
+      });
+
+      // 확인 모달
+      let confirmCallback = null;
+      function openConfirmModal(onClose) {
+        document.getElementById('modalConfirm').classList.add('open');
+        confirmCallback = onClose;
+      }
+      document.getElementById('confirmCancel').addEventListener('click', function () {
+        document.getElementById('modalConfirm').classList.remove('open');
+      });
+      document.getElementById('confirmClose').addEventListener('click', function () {
+        if (confirmCallback) confirmCallback();
+        document.getElementById('modalConfirm').classList.remove('open');
+      });
+
+      // 수정 모달 (태그)
+      const editTags = [];
+      const editContainer = document.getElementById('editTagsContainer');
+      const editInput = document.getElementById('editKeywordsInput');
+
+      function addEditTag(text) {
+        var t = text.trim().slice(0, MAX_TAG_LEN);
+        if (!t) return;
+        if (editTags.length >= MAX_TAGS) return;
+        if (editTags.includes(t)) return;
+        editTags.push(t);
+        var span = document.createElement('span');
+        span.className = 'tag';
+        span.innerHTML = t + ' <button type="button" class="tag-remove" aria-label="제거">&times;</button>';
+        span.querySelector('.tag-remove').onclick = function () {
+          editTags.splice(editTags.indexOf(t), 1);
+          span.remove();
+        };
+        editContainer.appendChild(span);
+        editInput.value = '';
+      }
+      editInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); addEditTag(this.value); }
+      });
+      editInput.addEventListener('blur', function () { if (this.value.trim()) addEditTag(this.value); });
+      editInput.addEventListener('input', function (e) {
+        if (e.target.value.includes(',')) {
+          e.target.value.split(',').forEach(addEditTag);
+          e.target.value = '';
+        }
+      });
+
+      const modalEdit = document.getElementById('modalEdit');
+      const editQuestion = document.getElementById('editQuestion');
+      const editAnswer = document.getElementById('editAnswer');
+
+      editQuestion.addEventListener('input', function () {
+        document.getElementById('editQuestionCount').textContent = this.value.length + ' / ' + MAX_QUESTION;
+      });
+      editAnswer.addEventListener('input', function () {
+        document.getElementById('editAnswerCount').textContent = this.value.length + ' / ' + MAX_ANSWER;
+      });
+
+      function openEditModal(row) {
+        document.getElementById('editContext').value = 'qa';
+        var cells = row.querySelectorAll('td');
+        var id = row.dataset.id;
+        document.getElementById('editId').value = id;
+        editQuestion.value = cells[1].textContent.trim();
+        editAnswer.value = cells[2].textContent.trim();
+        editTags.length = 0;
+        editContainer.innerHTML = '';
+        editInput.value = '';
+        var kw = (cells[3].textContent || '').trim();
+        if (kw) kw.split(',').forEach(function (k) { addEditTag(k.trim()); });
+        document.getElementById('editQuestionCount').textContent = editQuestion.value.length + ' / ' + MAX_QUESTION;
+        document.getElementById('editAnswerCount').textContent = editAnswer.value.length + ' / ' + MAX_ANSWER;
+        modalEdit.classList.add('open');
+      }
+
+      function openEditModalFromQuality(row) {
+        document.getElementById('editContext').value = 'quality';
+        var cells = row.querySelectorAll('td');
+        var id = row.dataset.id;
+        document.getElementById('editId').value = id;
+        var ans = cells[2].textContent.trim();
+        editQuestion.value = cells[1].textContent.trim();
+        editAnswer.value = (ans === '-' ? '' : ans);
+        editTags.length = 0;
+        editContainer.innerHTML = '';
+        editInput.value = '';
+        document.getElementById('editQuestionCount').textContent = editQuestion.value.length + ' / ' + MAX_QUESTION;
+        document.getElementById('editAnswerCount').textContent = editAnswer.value.length + ' / ' + MAX_ANSWER;
+        modalEdit.classList.add('open');
+      }
+      document.getElementById('closeEdit').addEventListener('click', function () { modalEdit.classList.remove('open'); });
+      document.getElementById('cancelEdit').addEventListener('click', function () { modalEdit.classList.remove('open'); });
+      document.getElementById('saveEdit').addEventListener('click', function () {
+        var ctx = document.getElementById('editContext').value;
+        var id = document.getElementById('editId').value;
+        if (ctx === 'quality') {
+          var row = document.querySelector('#qualityTableBody tr[data-id="' + id + '"]');
+          if (row) {
+            var c = row.querySelectorAll('td');
+            c[1].textContent = editQuestion.value.trim();
+            var answerText = editAnswer.value.trim();
+            c[2].textContent = answerText || '-';
+            c[2].className = 'answer clickable edit-answer';
+            if (c[2].title !== '클릭하여 답변 수정') c[2].setAttribute('title', '클릭하여 답변 수정');
+            if (answerText && c[4]) {
+              var badge = c[4].querySelector('.status-badge');
+              if (!badge || badge.textContent === '-') {
+                c[4].innerHTML = '<span class="status-badge answered">답변 완료</span>';
+              }
+            }
+          }
+        } else {
+          var row = document.querySelector('#tableBody tr[data-id="' + id + '"]');
+          if (row) {
+            var c = row.querySelectorAll('td');
+            c[1].textContent = editQuestion.value.trim();
+            c[2].textContent = editAnswer.value.trim();
+            c[2].className = 'answer clickable edit-answer';
+            c[2].setAttribute('title', '클릭하여 답변 수정');
+            c[3].textContent = editTags.join(', ');
+          }
+        }
+        modalEdit.classList.remove('open');
+        showToast('답변 수정 완료 되었습니다.');
+      });
+
+      function bindEditRow(tr) {
+        const editCell = tr.querySelector('.edit-row');
+        if (editCell) {
+          editCell.addEventListener('click', function () { openEditModal(tr); });
+        }
+        const checkCell = tr.querySelector('.row-check');
+        if (checkCell) {
+          checkCell.addEventListener('change', updateSelectedCount);
+        }
+      }
+      const editRows = document.querySelectorAll('#tableBody tr .edit-row');
+      editRows.forEach(function (cell) {
+        cell.addEventListener('click', function () { openEditModal(this.closest('tr')); });
+      });
+
+      // Q&A 데이터 관리 테이블의 답변 셀 클릭 시 답변 수정 모달 열기
+      if (tableBody) {
+        tableBody.addEventListener('click', function (e) {
+          if (e.target.classList.contains('edit-answer')) {
+            e.preventDefault();
+            openEditModal(e.target.closest('tr'));
+          }
+        });
+      }
+
+      // 대표 질문 자세히 보기 모달
+      const modalDetail = document.getElementById('modalDetail');
+      function openDetailModal(question) {
+        document.getElementById('detailQuestion').value = question;
+        modalDetail.classList.add('open');
+      }
+      document.getElementById('closeDetail').addEventListener('click', function () { modalDetail.classList.remove('open'); });
+      document.getElementById('cancelDetail').addEventListener('click', function () { modalDetail.classList.remove('open'); });
+      document.getElementById('confirmDetail').addEventListener('click', function () { modalDetail.classList.remove('open'); });
+      
+      // 답변 품질 관리 테이블의 대표 질문 클릭 시 상세 모달 열기
+      const qualityDetailRows = document.querySelectorAll('#qualityTableBody .view-detail');
+      qualityDetailRows.forEach(function (cell) {
+        cell.addEventListener('click', function () {
+          openDetailModal(this.textContent.trim());
+        });
+      });
+
+      // 답변 품질 관리 테이블의 답변 셀 클릭 시 답변 수정 모달 열기
+      document.querySelectorAll('#qualityTableBody .edit-answer').forEach(function (cell) {
+        cell.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openEditModalFromQuality(this.closest('tr'));
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
