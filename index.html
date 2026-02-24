@@ -88,6 +88,21 @@
       transition: transform 0.2s, box-shadow 0.2s;
     }
     .btn-start:hover { transform: scale(1.05); box-shadow: 0 6px 24px rgba(238,90,36,0.35); }
+    .btn-secondary {
+      padding: 12px 24px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--cat-secondary);
+      background: rgba(255,255,255,0.85);
+      border: 2px solid rgba(238, 90, 36, 0.25);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      margin-top: 12px;
+    }
+    .btn-secondary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); background: #fff; }
+    .link-btn { background: none; border: none; color: #888; cursor: pointer; font-size: inherit; text-decoration: underline; padding: 0; }
+    .link-btn:hover { color: var(--cat-secondary); }
 
     /* ========== 2. 온보딩 ========== */
     .onboarding { max-width: 420px; width: 100%; }
@@ -363,6 +378,7 @@
     <div class="intro-cat">🐱</div>
     <p class="intro-desc">버튼 없이 목소리만으로 점프·슬라이드! 크게 말할수록 파워 업. 10~30초 숏플레이.</p>
     <button type="button" class="btn-start" data-next="onboarding">시작하기</button>
+    <button type="button" class="btn-secondary" id="btnQuickPlay">바로 플레이</button>
   </section>
 
   <!-- 2. 온보딩 -->
@@ -481,6 +497,11 @@
         });
       });
 
+      document.getElementById('btnQuickPlay').addEventListener('click', function() {
+        goTo('gameplay');
+        startGame('classic');
+      });
+
       document.querySelectorAll('.mode-card').forEach(card => {
         card.addEventListener('click', function() {
           const mode = this.getAttribute('data-mode');
@@ -534,6 +555,7 @@
         let punchEndAt = 0;
         let passed = false;
         let obstacleIsHit = false;
+        let obstacleRespawnAt = 0;
 
         function doJump(isLong) {
           if (isSliding || isPunching) return;
@@ -557,9 +579,6 @@
           cat.classList.add('punch');
           cat.classList.remove('jump', 'jump-short', 'slide');
         }
-
-        let obstacleIsHit = false;
-        let obstacleRespawnAt = 0;
 
         function gameLoop(now) {
           if (!wrap || !document.getElementById('gameplay').classList.contains('active')) {
