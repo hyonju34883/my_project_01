@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>옆집과의 숨바꼭질</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   RESET & VARIABLES
+═══════════════════════════════════════ */
+:root{
+  --bg:#07050f;
+  --pdark:#12091e;
+  --pmid:#1e1040;
+  --plight:#5a3d8a;
+  --pale:#ddd4ee;
+  --muted:#8a7a9a;
+  --yellow:#e8b84b;
+  --red:#a52828;
+  --green:#2a8a5a;
+  --border:rgba(90,61,138,0.3);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--pale);
+  font-family:'Noto Serif KR',serif;
+  overflow:hidden;height:100vh;width:100vw;
+  cursor:none;
+}
+
+/* ── custom cursor ── */
+#cursor{
+  position:fixed;width:8px;height:8px;
+  background:var(--yellow);border-radius:50%;
+  pointer-events:none;z-index:99999;
+  transform:translate(-50%,-50%);
+  transition:transform 0.05s;
+  box-shadow:0 0 10px rgba(232,184,75,0.6);
+}
+#cursor-ring{
+  position:fixed;width:28px;height:28px;
+  border:1px solid rgba(232,184,75,0.4);border-radius:50%;
+  pointer-events:none;z-index:99998;
+  transform:translate(-50%,-50%);
+  transition:transform 0.12s,width 0.2s,height 0.2s;
+}
+
+/* ── noise & scanline ── */
+#noise{position:fixed;inset:0;z-index:9997;pointer-events:none;opacity:0.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:nz 0.1s steps(3) infinite;}
+@keyframes nz{0%{transform:translate(0,0)}33%{transform:translate(2px,-1px)}66%{transform:translate(-1px,2px)}}
+#scanline{position:fixed;inset:0;z-index:9996;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);}
+.vig{position:fixed;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 50%,rgba(7,5,15,0.9) 100%);pointer-events:none;z-index:2;}
+
+/* ── screens ── */
+.scr{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity 0.6s;}
+.scr.on{opacity:1;pointer-events:all;}
+
+/* ══════════════════════════════════════
+   S0 — TITLE
+══════════════════════════════════════ */
+#s0{display:flex;align-items:stretch;}
+
+.title-left{
+  flex:1.2;position:relative;
+  background:radial-gradient(ellipse 60% 80% at 40% 100%, #1a1030 0%, #070510 70%);
+  overflow:hidden;
+}
+.title-stars{position:absolute;inset:0;}
+.tstar{position:absolute;width:1px;height:1px;background:#fff;border-radius:50%;
+  animation:tw var(--td,3s) ease-in-out infinite;}
+@keyframes tw{0%,100%{opacity:0.15}50%{opacity:0.9}}
+
+/* night house */
+.title-house{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:85%;max-width:480px;}
+
+/* silhouette hover area */
+.win-hover-zone{position:absolute;cursor:none;}
+
+.title-right{
+  width:min(320px,35vw);
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 40px 0 32px;
+  border-left:1px solid var(--border);
+  background:linear-gradient(90deg,transparent,rgba(18,9,30,0.8));
+  position:relative;
+}
+.title-logo{margin-bottom:10px;}
+.tl-ko{font-size:clamp(22px,3vw,32px);font-weight:900;letter-spacing:0.05em;line-height:1.2;
+  color:var(--pale);text-shadow:0 0 30px rgba(90,61,138,0.5);}
+.tl-sub{font-size:10px;color:var(--plight);letter-spacing:0.4em;margin-top:6px;}
+.t-memory{font-size:11px;color:var(--red);letter-spacing:0.25em;margin-bottom:28px;
+  opacity:0;transition:opacity 1s;}
+.t-memory.show{opacity:1;}
+
+.tmenu{display:flex;flex-direction:column;gap:0;}
+.tmi{
+  padding:13px 0;border:none;background:transparent;
+  color:var(--muted);font-family:'Noto Serif KR',serif;
+  font-size:clamp(12px,1.4vw,14px);letter-spacing:0.35em;
+  text-align:left;cursor:none;
+  border-bottom:1px solid rgba(90,61,138,0.15);
+  transition:color 0.25s,letter-spacing 0.25s,padding-left 0.25s;
+  position:relative;
+}
+.tmi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;
+  background:linear-gradient(90deg,rgba(90,61,138,0.2),transparent);
+  transition:width 0.25s;}
+.tmi:hover{color:var(--pale);letter-spacing:0.45em;padding-left:8px;}
+.tmi:hover::before{width:100%;}
+.tmi.primary{color:var(--yellow);}
+.tmi.primary:hover{text-shadow:0 0 15px rgba(232,184,75,0.4);}
+
+.title-ver{position:absolute;bottom:20px;left:40px;font-size:9px;
+  color:rgba(138,122,154,0.3);letter-spacing:0.3em;font-family:'Share Tech Mono',monospace;}
+
+/* ══════════════════════════════════════
+   S1 — NAME INPUT
+══════════════════════════════════════ */
+#s1{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 55%,#150d28 0%,#07050f 70%);}
+.name-eyecatch{font-size:clamp(11px,1.3vw,13px);color:var(--plight);letter-spacing:0.5em;margin-bottom:28px;}
+.name-field-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+#pname{background:transparent;border:none;border-bottom:1px solid var(--plight);
+  color:var(--pale);font-family:'Noto Serif KR',serif;font-size:clamp(22px,3.5vw,32px);
+  text-align:center;padding:8px 16px;outline:none;width:300px;letter-spacing:0.3em;
+  caret-color:var(--yellow);}
+#pname::placeholder{color:rgba(138,122,154,0.25);font-size:0.75em;}
+#pname:focus{border-color:var(--yellow);}
+.name-hint{font-size:10px;color:rgba(138,122,154,0.35);letter-spacing:0.35em;margin-top:8px;}
+.name-deco{width:300px;height:1px;background:linear-gradient(90deg,transparent,var(--plight),transparent);
+  animation:lp 2.5s ease-in-out infinite;}
+@keyframes lp{0%,100%{opacity:0.3}50%{opacity:0.8}}
+
+/* ══════════════════════════════════════
+   S2 — PROLOGUE (성향 분석)
+══════════════════════════════════════ */
+#s2{display:flex;flex-direction:column;align-items:stretch;
+  background:radial-gradient(ellipse at 40% 40%,#1a0f2e 0%,#07050f 70%);}
+.pro-portrait{
+  height:min(260px,38vh);
+  background:linear-gradient(180deg,#12091e 0%,#07050f 100%);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-end;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.pro-glow{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:200px;height:200px;
+  background:radial-gradient(circle,rgba(90,61,138,0.2) 0%,transparent 70%);}
+.pro-char{height:85%;width:auto;position:relative;z-index:2;}
+.pro-emo{position:absolute;top:16px;right:20px;display:flex;align-items:center;gap:8px;}
+.emo-dot{width:9px;height:9px;border-radius:50%;transition:background 0.4s,box-shadow 0.4s;}
+.emo-dot.calm{background:#5a8a70;box-shadow:0 0 8px rgba(90,138,112,0.6);}
+.emo-dot.smile{background:#4a7a9a;box-shadow:0 0 8px rgba(74,122,154,0.6);}
+.emo-dot.guard{background:#e8b84b;box-shadow:0 0 8px rgba(232,184,75,0.6);}
+.emo-lbl{font-size:9px;color:var(--muted);letter-spacing:0.25em;}
+.pro-name-tag{position:absolute;bottom:14px;left:20px;font-size:10px;color:var(--plight);letter-spacing:0.3em;}
+
+.pro-dialog{padding:18px 24px 12px;min-height:80px;border-bottom:1px solid var(--border);}
+.pro-who{font-size:9px;color:var(--plight);letter-spacing:0.35em;margin-bottom:7px;}
+.pro-text{font-size:clamp(12px,1.5vw,14px);color:var(--pale);line-height:2;letter-spacing:0.06em;}
+
+.pro-choices{padding:12px 20px;display:flex;flex-direction:column;gap:7px;flex:1;justify-content:center;}
+.pcho{
+  padding:10px 18px;background:transparent;
+  border:1px solid rgba(90,61,138,0.25);
+  color:var(--muted);font-family:'Noto Serif KR',serif;
+  font-size:clamp(11px,1.4vw,13px);letter-spacing:0.15em;
+  cursor:none;text-align:left;transition:all 0.22s;
+  position:relative;
+}
+.pcho::after{
+  content:attr(data-tag);position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:8px;letter-spacing:0.2em;color:rgba(138,122,154,0.5);
+}
+.pcho:hover{border-color:var(--plight);color:var(--pale);background:rgba(90,61,138,0.07);}
+
+/* ══════════════════════════════════════
+   HUD (game screens)
+══════════════════════════════════════ */
+#hud{
+  position:fixed;top:0;left:0;right:0;height:48px;z-index:500;
+  background:rgba(7,5,15,0.92);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;opacity:0;pointer-events:none;transition:opacity 0.5s;
+}
+#hud.on{opacity:1;pointer-events:all;}
+.hud-l{display:flex;align-items:center;gap:14px;}
+.hud-stg{font-size:9px;color:var(--plight);letter-spacing:0.4em;font-family:'Share Tech Mono',monospace;}
+.hud-loc{font-size:12px;color:var(--pale);letter-spacing:0.15em;}
+.hud-c{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.hud-tlbl{font-size:8px;color:var(--muted);letter-spacing:0.3em;}
+.hud-time{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--yellow);letter-spacing:0.08em;}
+.hud-time.danger{color:var(--red);animation:td 0.6s steps(1) infinite;}
+@keyframes td{0%,49%{opacity:1}50%,100%{opacity:0.3}}
+.hud-r{display:flex;align-items:center;gap:16px;}
+.hstat{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.hstat-lbl{font-size:8px;color:var(--muted);letter-spacing:0.25em;}
+.hstat-val{font-size:11px;letter-spacing:0.1em;}
+.hstat-val.alive{color:var(--green);}
+.hstat-val.dead{color:var(--red);}
+.gauge-wrap{display:flex;align-items:center;gap:6px;}
+.gauge-lbl{font-size:8px;color:var(--muted);letter-spacing:0.2em;}
+.gauge{width:70px;height:5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.gauge-f{height:100%;border-radius:2px;transition:width 0.4s,background 0.4s;}
+.gauge-f.sus{background:linear-gradient(90deg,#e8b84b,#a52828);}
+.gauge-f.exp{background:linear-gradient(90deg,#3a6a9a,#a52828);}
+
+/* ══════════════════════════════════════
+   S3 — MAIN GAME (탐색+단서)
+══════════════════════════════════════ */
+#s3{flex-direction:row;padding-top:48px;}
+#s3.on{display:flex;}
+
+/* Left: 2D cross-section map */
+.game-map{
+  flex:1.6;position:relative;
+  background:radial-gradient(ellipse at 50% 60%,#120920 0%,#07050f 80%);
+  overflow:hidden;border-right:1px solid var(--border);
+}
+.map-label{position:absolute;top:12px;left:16px;
+  font-size:9px;color:var(--plight);letter-spacing:0.4em;}
+
+/* rooms */
+.room{
+  position:absolute;border:1px solid rgba(90,61,138,0.35);
+  cursor:none;transition:border-color 0.22s,background 0.22s;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;
+}
+.room:hover:not(.locked){border-color:rgba(232,184,75,0.6);background:rgba(232,184,75,0.04);}
+.room.locked{border-color:rgba(165,40,40,0.35);cursor:not-allowed;}
+.room.active-r{border-color:rgba(90,61,138,0.8);background:rgba(90,61,138,0.1);}
+.room-label{font-size:clamp(9px,1vw,11px);color:var(--muted);letter-spacing:0.2em;text-align:center;}
+.room.locked .room-label{color:rgba(165,40,40,0.5);}
+.room:hover:not(.locked) .room-label{color:var(--yellow);}
+.room-icon{font-size:18px;}
+
+/* clue spots in room */
+.cspot{
+  position:absolute;width:32px;height:32px;border-radius:50%;
+  border:1px solid rgba(232,184,75,0.45);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:none;
+  animation:csp 2.4s ease-in-out infinite;
+  transition:all 0.2s;
+}
+.cspot:hover{border-color:var(--yellow);background:rgba(232,184,75,0.12);transform:scale(1.2);}
+.cspot.found{border-color:rgba(42,138,90,0.5);animation:none;opacity:0.4;cursor:default;}
+@keyframes csp{0%,100%{box-shadow:0 0 0 0 rgba(232,184,75,0.2)}50%{box-shadow:0 0 0 6px rgba(232,184,75,0)}}
+
+/* Right: status panel */
+.side-panel{
+  width:min(260px,30vw);
+  display:flex;flex-direction:column;
+  background:rgba(18,9,30,0.6);
+}
+.sp-sec{padding:14px 16px;border-bottom:1px solid var(--border);}
+.sp-title{font-size:8px;color:var(--plight);letter-spacing:0.4em;margin-bottom:10px;}
+/* emotion display */
+.emo-faces{display:flex;flex-direction:column;gap:6px;}
+.emo-row{display:flex;align-items:center;gap:8px;}
+.emo-bar-bg{flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;}
+.emo-bar{height:100%;border-radius:2px;transition:width 0.5s;}
+.emo-name{font-size:9px;letter-spacing:0.2em;width:28px;color:var(--muted);}
+/* clue list */
+.clue-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;}
+.clue-item{padding:6px 10px;border:1px solid rgba(90,61,138,0.2);
+  font-size:10px;color:var(--muted);letter-spacing:0.1em;display:flex;align-items:center;gap:7px;}
+.clue-item.new-clue{border-color:rgba(232,184,75,0.5);color:var(--pale);animation:ciblink 0.5s ease;}
+@keyframes ciblink{0%{background:rgba(232,184,75,0.15)}100%{background:transparent}}
+.clue-icon{font-size:12px;}
+/* action buttons */
+.actions{padding:14px 16px;margin-top:auto;}
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.abtn{
+  padding:9px 6px;background:transparent;
+  border:1px solid rgba(90,61,138,0.3);
+  color:var(--muted);font-family:'Noto Serif KR',serif;
+  font-size:10px;letter-spacing:0.15em;
+  cursor:none;transition:all 0.2s;text-align:center;
+}
+.abtn:hover:not(:disabled){border-color:var(--plight);color:var(--pale);background:rgba(90,61,138,0.08);}
+.abtn:disabled{opacity:0.3;cursor:not-allowed;}
+.abtn.highlight{border-color:rgba(232,184,75,0.5);color:var(--yellow);}
+.abtn.locked-btn::after{content:' 🔒';font-size:8px;}
+.abtn-full{
+  grid-column:1/-1;margin-top:6px;
+  padding:10px;background:transparent;
+  border:1px solid rgba(232,184,75,0.35);
+  color:var(--yellow);font-family:'Noto Serif KR',serif;
+  font-size:11px;letter-spacing:0.25em;
+  cursor:none;transition:all 0.22s;
+}
+.abtn-full:hover{background:rgba(232,184,75,0.07);border-color:var(--yellow);}
+
+/* ══════════════════════════════════════
+   S4 — 대화 심리전
+══════════════════════════════════════ */
+#s4{flex-direction:column;padding-top:48px;}
+#s4.on{display:flex;}
+.dlg-port{
+  height:min(220px,32vh);
+  background:linear-gradient(180deg,#12091e 0%,#07050f 100%);
+  border-bottom:1px solid var(--border);
+  position:relative;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;
+}
+.port-bg-glow{position:absolute;inset:0;
+  background:radial-gradient(ellipse 50% 60% at 50% 80%,rgba(30,16,64,0.8) 0%,transparent 70%);}
+.port-svg{height:88%;z-index:2;position:relative;}
+.dlg-emo{position:absolute;top:14px;right:18px;display:flex;align-items:center;gap:7px;}
+.dlg-emo-dot{width:10px;height:10px;border-radius:50%;transition:all 0.4s;}
+.dlg-emo-dot.guard{background:#e8b84b;box-shadow:0 0 10px rgba(232,184,75,0.7);}
+.dlg-emo-dot.ease{background:#2a8a5a;box-shadow:0 0 10px rgba(42,138,90,0.7);}
+.dlg-emo-dot.anger{background:#a52828;box-shadow:0 0 10px rgba(165,40,40,0.7);animation:ep 0.4s steps(1) infinite;}
+@keyframes ep{0%,49%{opacity:1}50%,100%{opacity:0.2}}
+.dlg-emo-lbl{font-size:9px;color:var(--muted);letter-spacing:0.25em;}
+.dlg-nametag{position:absolute;bottom:12px;left:18px;font-size:9px;color:var(--plight);letter-spacing:0.3em;}
+
+.dlg-speech{padding:16px 22px 10px;border-bottom:1px solid var(--border);}
+.dlg-who{font-size:9px;color:var(--plight);letter-spacing:0.35em;margin-bottom:6px;}
+.dlg-txt{font-size:clamp(12px,1.5vw,14px);color:var(--pale);line-height:2;letter-spacing:0.06em;min-height:2.8em;}
+
+.dlg-choices{padding:10px 18px;display:flex;flex-direction:column;gap:7px;flex:1;overflow-y:auto;}
+.dcho{
+  padding:10px 16px;background:transparent;
+  border:1px solid rgba(90,61,138,0.25);
+  color:var(--muted);font-family:'Noto Serif KR',serif;
+  font-size:clamp(11px,1.4vw,13px);letter-spacing:0.12em;
+  cursor:none;text-align:left;transition:all 0.22s;position:relative;
+}
+.dcho::after{
+  content:attr(data-tag);position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:8px;letter-spacing:0.2em;opacity:0.5;
+}
+.dcho.direct::after{color:var(--yellow);}
+.dcho.indirect::after{color:#5a9aaa;}
+.dcho.silence::after{color:var(--muted);}
+.dcho.emo::after{color:#aa5a7a;}
+.dcho:hover{border-color:var(--plight);color:var(--pale);background:rgba(90,61,138,0.07);}
+
+/* ══════════════════════════════════════
+   S5 — 단서 보드 (cork board)
+══════════════════════════════════════ */
+#s5{padding-top:48px;}
+#s5.on{display:flex;flex-direction:column;}
+.board-wrap{flex:1;position:relative;overflow:hidden;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(90,50,20,0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(90,50,20,0.06) 0%, transparent 50%),
+    #0c0a14;
+}
+.board-title{position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  font-size:9px;color:var(--plight);letter-spacing:0.45em;}
+.board-actions{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  display:flex;gap:10px;}
+.bact{
+  padding:10px 24px;background:transparent;
+  border:1px solid rgba(90,61,138,0.4);
+  color:var(--plight);font-family:'Noto Serif KR',serif;
+  font-size:12px;letter-spacing:0.3em;cursor:none;transition:all 0.25s;
+}
+.bact:hover{border-color:var(--plight);color:var(--pale);background:rgba(90,61,138,0.1);}
+.bact.go{border-color:rgba(232,184,75,0.4);color:var(--yellow);}
+.bact.go:hover{background:rgba(232,184,75,0.07);}
+
+/* cork card */
+.ccard{
+  position:absolute;
+  width:130px;background:#f5e8c8;color:#3a2a18;
+  padding:10px 10px 14px;font-family:'Noto Serif KR',serif;
+  font-size:10px;line-height:1.7;letter-spacing:0.05em;
+  box-shadow:2px 4px 12px rgba(0,0,0,0.5);
+  cursor:none;user-select:none;
+  transition:transform 0.15s,box-shadow 0.15s;
+}
+.ccard::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+  width:12px;height:12px;background:#aa4444;border-radius:50%;
+  box-shadow:0 2px 4px rgba(0,0,0,0.4);}
+.ccard.selected{
+  outline:2px solid var(--yellow);
+  box-shadow:2px 4px 20px rgba(232,184,75,0.4);
+  transform:scale(1.04) rotate(0deg) !important;
+}
+.ccard-icon{font-size:16px;display:block;margin-bottom:5px;}
+.ccard-title{font-weight:700;font-size:11px;margin-bottom:3px;}
+
+/* SVG connector lines */
+#board-svg{position:absolute;inset:0;pointer-events:none;}
+
+/* AI deduction bubble */
+#ded-bubble{
+  position:absolute;bottom:64px;left:50%;transform:translateX(-50%);
+  background:rgba(18,9,30,0.95);border:1px solid var(--border);
+  padding:12px 20px;max-width:400px;width:90%;text-align:center;
+  font-size:12px;color:var(--pale);letter-spacing:0.1em;line-height:1.9;
+  opacity:0;transition:opacity 0.5s;
+}
+#ded-bubble.show{opacity:1;}
+#ded-bubble::before{content:'AI 추리 ·';font-size:9px;color:var(--plight);letter-spacing:0.3em;display:block;margin-bottom:5px;}
+
+/* ══════════════════════════════════════
+   S6 — 결정 (급습/신고/대치)
+══════════════════════════════════════ */
+#s6{flex-direction:column;align-items:center;justify-content:center;padding-top:48px;
+  background:radial-gradient(ellipse at 50% 50%,#1a0f2e 0%,#07050f 70%);}
+.dec-title{font-size:9px;color:var(--plight);letter-spacing:0.5em;margin-bottom:8px;}
+.dec-sub{font-size:clamp(20px,3.5vw,32px);font-weight:900;margin-bottom:6px;}
+.dec-flavor{font-size:12px;color:var(--muted);letter-spacing:0.1em;margin-bottom:36px;max-width:400px;text-align:center;line-height:1.8;}
+.dec-timer{font-family:'Share Tech Mono',monospace;font-size:28px;color:var(--red);
+  margin-bottom:24px;animation:td 0.8s steps(1) infinite;}
+.dec-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.dcard{
+  width:min(180px,42vw);padding:20px 14px;
+  background:rgba(18,9,30,0.8);border:1px solid var(--border);
+  cursor:none;transition:all 0.28s;text-align:center;
+}
+.dcard:hover{border-color:var(--plight);background:rgba(90,61,138,0.12);transform:translateY(-4px);}
+.dcard-icon{font-size:30px;display:block;margin-bottom:10px;}
+.dcard-name{font-size:clamp(13px,1.6vw,15px);color:var(--pale);letter-spacing:0.15em;margin-bottom:6px;}
+.dcard-desc{font-size:10px;color:var(--muted);letter-spacing:0.08em;line-height:1.7;}
+
+/* ══════════════════════════════════════
+   S7 — 결과
+══════════════════════════════════════ */
+#s7{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;}
+.res-type{font-size:10px;letter-spacing:0.5em;margin-bottom:10px;}
+.res-type.success{color:var(--green);}
+.res-type.partial{color:var(--yellow);}
+.res-type.fail{color:var(--red);}
+.res-type.ai{color:#aa44aa;}
+.res-title{font-size:clamp(30px,5vw,54px);font-weight:900;margin-bottom:12px;line-height:1.1;}
+.res-body{font-size:clamp(12px,1.5vw,14px);color:var(--muted);max-width:500px;line-height:2.3;letter-spacing:0.05em;margin-bottom:28px;}
+.res-next{font-size:11px;color:var(--plight);letter-spacing:0.3em;margin-bottom:8px;}
+.res-btns{display:flex;gap:12px;}
+.rbtn{
+  padding:11px 28px;background:transparent;
+  border:1px solid rgba(90,61,138,0.4);
+  color:var(--plight);font-family:'Noto Serif KR',serif;
+  font-size:12px;letter-spacing:0.3em;cursor:none;transition:all 0.25s;
+}
+.rbtn:hover{border-color:var(--plight);color:var(--pale);}
+.rbtn.main{border-color:rgba(232,184,75,0.4);color:var(--yellow);}
+.rbtn.main:hover{background:rgba(232,184,75,0.07);}
+
+/* glitch overlay */
+#glitch{position:fixed;inset:0;z-index:8000;pointer-events:none;opacity:0;transition:opacity 0.3s;
+  background:repeating-linear-gradient(0deg,rgba(165,40,40,0.06) 0,rgba(165,40,40,0.06) 1px,transparent 1px,transparent 4px);}
+#glitch.on{opacity:1;animation:glitchA 0.15s steps(2) infinite;}
+@keyframes glitchA{0%{transform:translate(0,0)}50%{transform:translate(-3px,2px)}100%{transform:translate(2px,-1px)}}
+
+/* red vignette */
+#rvign{position:fixed;inset:0;z-index:7900;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 35%,rgba(165,40,40,0.45) 100%);
+  opacity:0;transition:opacity 0.5s;}
+
+/* toast */
+#toast{
+  position:fixed;bottom:50px;left:50%;transform:translateX(-50%);
+  padding:9px 22px;background:rgba(18,9,30,0.96);
+  border:1px solid rgba(90,61,138,0.4);
+  font-size:12px;color:var(--pale);letter-spacing:0.15em;
+  z-index:1000;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;
+}
+#toast.on{opacity:1;}
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media(max-width:600px){
+  .title-right{width:55vw;padding:0 16px;}
+  .side-panel{width:36vw;}
+}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div id="noise"></div>
+<div id="scanline"></div>
+<div class="vig"></div>
+<div id="glitch"></div>
+<div id="rvign"></div>
+<div id="toast"></div>
+
+<!-- ══ HUD ══ -->
+<div id="hud">
+  <div class="hud-l">
+    <span class="hud-stg" id="hud-stg">STAGE·01</span>
+    <span class="hud-loc" id="hud-loc">—</span>
+  </div>
+  <div class="hud-c">
+    <span class="hud-tlbl">TIME LIMIT</span>
+    <span class="hud-time" id="hud-time">15:00</span>
+  </div>
+  <div class="hud-r">
+    <div class="hstat">
+      <span class="hstat-lbl">인질</span>
+      <span class="hstat-val alive" id="h-hostage">생존 중</span>
+    </div>
+    <div class="gauge-wrap">
+      <span class="gauge-lbl">의심</span>
+      <div class="gauge"><div class="gauge-f sus" id="g-sus" style="width:0%"></div></div>
+    </div>
+    <div class="gauge-wrap">
+      <span class="gauge-lbl">노출</span>
+      <div class="gauge"><div class="gauge-f exp" id="g-exp" style="width:0%"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S0 — TITLE
+══════════════════════════════════════ -->
+<div class="scr on" id="s0">
+  <div class="title-left" id="title-left">
+    <div class="title-stars" id="tstars"></div>
+    <!-- Night House SVG -->
+    <div class="title-house">
+<svg viewBox="0 0 500 360" xmlns="http://www.w3.org/2000/svg" width="100%">
+<defs>
+  <radialGradient id="wg1" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#e8b84b" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e8b84b" stop-opacity="0.05"/>
+  </radialGradient>
+  <filter id="glow1"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<!-- ground -->
+<rect x="0" y="320" width="500" height="40" fill="#0a0818"/>
+<!-- fence -->
+<rect x="0" y="305" width="500" height="5" fill="#1e1640" rx="1"/>
+<rect x="20" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="55" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="90" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="125" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="160" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="195" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="230" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="265" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="300" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="335" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="370" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="405" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="440" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<rect x="468" y="292" width="9" height="20" fill="#1e1640" rx="1"/>
+<!-- house body -->
+<rect x="90" y="155" width="320" height="155" fill="#120a20" stroke="#2a1a50" stroke-width="1.5"/>
+<!-- roof -->
+<polygon points="65,155 250,48 435,155" fill="#0e0818" stroke="#2a1a50" stroke-width="1.5"/>
+<!-- chimney -->
+<rect x="310" y="68" width="28" height="60" fill="#0e0818" stroke="#2a1a50" stroke-width="1"/>
+<!-- door -->
+<rect x="205" y="230" width="70" height="80" fill="#0c091a" stroke="#3a2860" stroke-width="1.5" rx="2"/>
+<circle cx="265" cy="273" r="4" fill="#5a3d8a"/>
+<!-- door step -->
+<rect x="195" y="308" width="90" height="6" fill="#1e1640" rx="1"/>
+<!-- dark windows 1F -->
+<rect x="108" y="215" width="65" height="52" fill="#08060e" stroke="#221840" stroke-width="1.5" rx="1"/>
+<line x1="140" y1="215" x2="140" y2="267" stroke="#12091e" stroke-width="1.5"/>
+<line x1="108" y1="241" x2="173" y2="241" stroke="#12091e" stroke-width="1.5"/>
+<rect x="320" y="215" width="65" height="52" fill="#08060e" stroke="#221840" stroke-width="1.5" rx="1"/>
+<line x1="352" y1="215" x2="352" y2="267" stroke="#12091e" stroke-width="1.5"/>
+<line x1="320" y1="241" x2="385" y2="241" stroke="#12091e" stroke-width="1.5"/>
+<!-- LIT window 2F center — with glow -->
+<rect id="lit-win" x="210" y="95" width="80" height="62" fill="url(#wg1)" stroke="#6a5020" stroke-width="1.5" rx="1" filter="url(#glow1)" style="animation:wflicker 4.5s ease-in-out infinite"/>
+<line x1="250" y1="95" x2="250" y2="157" stroke="rgba(200,160,60,0.35)" stroke-width="1.5" style="animation:wflicker 4.5s ease-in-out infinite"/>
+<line x1="210" y1="126" x2="290" y2="126" stroke="rgba(200,160,60,0.35)" stroke-width="1.5" style="animation:wflicker 4.5s ease-in-out infinite"/>
+<!-- Shadow figure (hover activated) -->
+<g id="win-shadow" style="opacity:0;transition:opacity 0.4s">
+  <ellipse cx="250" cy="107" rx="11" ry="12" fill="rgba(8,4,14,0.9)"/>
+  <rect x="239" y="119" width="22" height="28" fill="rgba(8,4,14,0.9)" rx="2"/>
+</g>
+<!-- bushes -->
+<ellipse cx="130" cy="312" rx="38" ry="16" fill="#0e0a1c"/>
+<ellipse cx="370" cy="312" rx="38" ry="16" fill="#0e0a1c"/>
+<!-- 2F side windows (dark) -->
+<rect x="108" y="100" width="60" height="48" fill="#08060e" stroke="#221840" stroke-width="1" rx="1"/>
+<line x1="138" y1="100" x2="138" y2="148" stroke="#12091e" stroke-width="1"/>
+<line x1="108" y1="124" x2="168" y2="124" stroke="#12091e" stroke-width="1"/>
+<rect x="330" y="100" width="60" height="48" fill="#08060e" stroke="#221840" stroke-width="1" rx="1"/>
+<line x1="360" y1="100" x2="360" y2="148" stroke="#12091e" stroke-width="1"/>
+<line x1="330" y1="124" x2="390" y2="124" stroke="#12091e" stroke-width="1"/>
+</svg>
+    </div>
+
+    <!-- invisible hover zone over lit window -->
+    <div class="win-hover-zone" id="win-hover"
+      style="position:absolute;left:44%;top:22%;width:14%;height:17%;"></div>
+  </div>
+
+  <div class="title-right">
+    <div class="title-logo">
+      <div class="tl-ko">옆집과의<br>숨바꼭질</div>
+      <div class="tl-sub">AI 심리 추리 · 잠입 전략 시뮬레이션</div>
+    </div>
+    <div class="t-memory" id="t-memory">🔴 "나는 널 기억해."</div>
+    <div class="tmenu">
+      <button class="tmi primary" id="btn-newgame">▶ 시작하기</button>
+      <button class="tmi" id="btn-continue">이어하기</button>
+      <button class="tmi" onclick="toast('설정 준비 중')">설 정</button>
+      <button class="tmi" onclick="toast('기록 준비 중')">기 록</button>
+    </div>
+    <div class="title-ver">ver 0.1 · DEMO</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S1 — NAME INPUT
+══════════════════════════════════════ -->
+<div class="scr" id="s1">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:30px;">
+    <div class="name-eyecatch">— 당신의 이름을 입력하세요 —</div>
+    <div class="name-field-wrap">
+      <input type="text" id="pname" placeholder="이름" maxlength="12" autocomplete="off" spellcheck="false"/>
+      <div class="name-deco"></div>
+      <div class="name-hint">ENTER 또는 아래 버튼으로 계속</div>
+      <button class="tmi primary" style="margin-top:16px;text-align:center;" id="btn-nameok">확 인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S2 — PROLOGUE (성향 분석)
+══════════════════════════════════════ -->
+<div class="scr" id="s2">
+  <div class="pro-portrait">
+    <div class="pro-glow"></div>
+<svg class="pro-char" viewBox="0 0 160 220" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="pg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#2a1a50" stop-opacity="0.6"/><stop offset="100%" stop-color="transparent"/></radialGradient>
+</defs>
+<ellipse cx="80" cy="110" rx="70" ry="90" fill="url(#pg)"/>
+<!-- body -->
+<rect x="42" y="138" width="76" height="82" fill="rgba(14,8,24,0.98)" rx="6"/>
+<!-- head -->
+<ellipse cx="80" cy="100" rx="34" ry="38" fill="rgba(18,10,30,0.98)"/>
+<!-- hair top -->
+<ellipse cx="80" cy="70" rx="36" ry="18" fill="rgba(10,5,18,0.98)"/>
+<rect x="44" y="70" width="11" height="32" fill="rgba(10,5,18,0.98)" rx="4"/>
+<rect x="105" y="70" width="11" height="32" fill="rgba(10,5,18,0.98)" rx="4"/>
+<!-- eyes -->
+<ellipse cx="67" cy="98" rx="6" ry="7" fill="#150d28"/>
+<ellipse cx="93" cy="98" rx="6" ry="7" fill="#150d28"/>
+<ellipse cx="67" cy="98" rx="3" ry="3.5" fill="#5a3d8a" id="peye-l"/>
+<ellipse cx="93" cy="98" rx="3" ry="3.5" fill="#5a3d8a" id="peye-r"/>
+<circle cx="65.5" cy="96.5" r="1" fill="rgba(255,255,255,0.4)"/>
+<circle cx="91.5" cy="96.5" r="1" fill="rgba(255,255,255,0.4)"/>
+<!-- eyebrows -->
+<path id="pbrow-l" d="M61 89 Q67 86 73 89" stroke="#3a2460" stroke-width="1.5" fill="none"/>
+<path id="pbrow-r" d="M87 89 Q93 86 99 89" stroke="#3a2460" stroke-width="1.5" fill="none"/>
+<!-- mouth -->
+<path id="pmouth" d="M72 116 Q80 120 88 116" stroke="#4a3060" stroke-width="1.5" fill="none"/>
+<!-- collar -->
+<path d="M56 142 L80 152 L104 142" stroke="#3a2860" stroke-width="2" fill="none"/>
+<!-- jacket lines -->
+<line x1="80" y1="152" x2="80" y2="220" stroke="#2a1a40" stroke-width="1"/>
+</svg>
+    <div class="pro-emo">
+      <div class="emo-dot calm" id="pro-emo-dot"></div>
+      <span class="emo-lbl" id="pro-emo-lbl">여유</span>
+    </div>
+    <div class="pro-nametag" style="position:absolute;bottom:14px;left:20px;font-size:9px;color:var(--plight);letter-spacing:0.3em;">수상한 K · 옆집 이웃</div>
+  </div>
+  <div class="pro-dialog">
+    <div class="pro-who">K</div>
+    <div class="pro-text" id="pro-text"></div>
+  </div>
+  <div class="pro-choices" id="pro-choices"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S3 — MAIN GAME
+══════════════════════════════════════ -->
+<div class="scr" id="s3">
+  <!-- Map area -->
+  <div class="game-map" id="game-map">
+    <div class="map-label">이웃집 · 단면도</div>
+    <!-- rooms rendered by JS -->
+  </div>
+  <!-- Right panel -->
+  <div class="side-panel">
+    <div class="sp-sec">
+      <div class="sp-title">이웃 감정 상태</div>
+      <div class="emo-faces">
+        <div class="emo-row">
+          <span class="emo-name" style="font-size:9px">안정</span>
+          <div class="emo-bar-bg"><div class="emo-bar" id="em-calm" style="width:80%;background:#2a8a5a;"></div></div>
+        </div>
+        <div class="emo-row">
+          <span class="emo-name" style="font-size:9px">의심</span>
+          <div class="emo-bar-bg"><div class="emo-bar" id="em-sus" style="width:20%;background:#e8b84b;"></div></div>
+        </div>
+        <div class="emo-row">
+          <span class="emo-name" style="font-size:9px">경계</span>
+          <div class="emo-bar-bg"><div class="emo-bar" id="em-guard" style="width:10%;background:#e8943a;"></div></div>
+        </div>
+        <div class="emo-row">
+          <span class="emo-name" style="font-size:9px">적대</span>
+          <div class="emo-bar-bg"><div class="emo-bar" id="em-hostile" style="width:0%;background:#a52828;"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-sec" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div class="sp-title">수집한 단서 <span id="clue-count" style="color:var(--yellow)">0</span> / <span id="clue-total">7</span></div>
+      <div class="clue-list" id="clue-list">
+        <div style="font-size:10px;color:rgba(138,122,154,0.35);letter-spacing:0.2em;">방을 탐색하여 단서를 수집하세요</div>
+      </div>
+    </div>
+    <div class="actions">
+      <div class="sp-title">행동 선택</div>
+      <div class="act-grid">
+        <button class="abtn" id="act-observe" onclick="doAction('observe')">👁 관찰하기</button>
+        <button class="abtn" id="act-investigate" onclick="doAction('investigate')">🔍 조사하기</button>
+        <button class="abtn" id="act-sound" onclick="doAction('sound')">🔊 소리 유도</button>
+        <button class="abtn" id="act-hide" onclick="doAction('hide')">🫥 숨기</button>
+        <button class="abtn-full highlight" onclick="goTo('s4')">💬 이웃과 대화하기</button>
+        <button class="abtn-full" onclick="goTo('s5')">📌 단서 보드 열기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S4 — 대화 심리전
+══════════════════════════════════════ -->
+<div class="scr" id="s4">
+  <div class="dlg-port">
+    <div class="port-bg-glow"></div>
+<svg class="port-svg" viewBox="0 0 180 240" xmlns="http://www.w3.org/2000/svg">
+<defs><radialGradient id="pbg2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#2a1a50" stop-opacity="0.5"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs>
+<ellipse cx="90" cy="120" rx="80" ry="100" fill="url(#pbg2)"/>
+<rect x="50" y="140" width="80" height="100" fill="rgba(12,7,20,0.98)" rx="6"/>
+<ellipse cx="90" cy="106" rx="36" ry="40" fill="rgba(16,9,26,0.98)"/>
+<ellipse cx="90" cy="74" rx="38" ry="20" fill="rgba(8,4,14,0.98)"/>
+<rect x="51" y="74" width="12" height="34" fill="rgba(8,4,14,0.98)" rx="4"/>
+<rect x="117" y="74" width="12" height="34" fill="rgba(8,4,14,0.98)" rx="4"/>
+<ellipse cx="76" cy="104" rx="6" ry="7" fill="#150d28"/>
+<ellipse cx="104" cy="104" rx="6" ry="7" fill="#150d28"/>
+<ellipse cx="76" cy="104" rx="3" ry="3.5" fill="#5a3d8a" id="deye-l"/>
+<ellipse cx="104" cy="104" rx="3" ry="3.5" fill="#5a3d8a" id="deye-r"/>
+<circle cx="74.5" cy="102.5" r="1" fill="rgba(255,255,255,0.35)"/>
+<circle cx="102.5" cy="102.5" r="1" fill="rgba(255,255,255,0.35)"/>
+<path id="dbrow-l" d="M69 94 Q76 91 83 94" stroke="#3a2460" stroke-width="1.5" fill="none"/>
+<path id="dbrow-r" d="M96 94 Q103 91 110 94" stroke="#3a2460" stroke-width="1.5" fill="none"/>
+<path id="dmouth" d="M80 122 Q90 127 100 122" stroke="#4a3060" stroke-width="1.5" fill="none"/>
+<path d="M62 146 L90 157 L118 146" stroke="#3a2860" stroke-width="2" fill="none"/>
+<line x1="90" y1="157" x2="90" y2="240" stroke="#2a1a40" stroke-width="1"/>
+</svg>
+    <div class="dlg-emo">
+      <div class="dlg-emo-dot guard" id="d-emo-dot"></div>
+      <span class="dlg-emo-lbl" id="d-emo-lbl">경계</span>
+    </div>
+    <div class="dlg-nametag">수상한 K · 옆집 이웃</div>
+  </div>
+  <div class="dlg-speech">
+    <div class="dlg-who" id="d-who">K</div>
+    <div class="dlg-txt" id="d-txt"></div>
+  </div>
+  <div class="dlg-choices" id="d-choices"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S5 — 단서 보드
+══════════════════════════════════════ -->
+<div class="scr" id="s5">
+  <div class="board-wrap" id="board-wrap">
+    <div class="board-title">— 단서 보드 · 클릭으로 선택 후 연결 —</div>
+    <svg id="board-svg"></svg>
+    <div id="ded-bubble"></div>
+    <div class="board-actions">
+      <button class="bact" onclick="goTo('s3')">← 탐색으로</button>
+      <button class="bact go" id="btn-board-go" onclick="goTo('s6')">결정하기 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S6 — 결정
+══════════════════════════════════════ -->
+<div class="scr" id="s6">
+  <div class="dec-title">— 최종 결정의 순간 —</div>
+  <div class="dec-sub">어떻게 할 것인가</div>
+  <div class="dec-flavor" id="dec-flavor">단서를 모았다. 이제 결정해야 한다.<br>시간이 없다.</div>
+  <div class="dec-timer" id="dec-timer" style="display:none">10</div>
+  <div class="dec-cards">
+    <div class="dcard" onclick="decide('raid')">
+      <span class="dcard-icon">🔨</span>
+      <div class="dcard-name">지하실 급습</div>
+      <div class="dcard-desc">직접 문을 부수고 들어간다.<br>실패하면 모든 게 끝난다.</div>
+    </div>
+    <div class="dcard" onclick="decide('police')">
+      <span class="dcard-icon">📞</span>
+      <div class="dcard-name">경찰 신고</div>
+      <div class="dcard-desc">증거를 가지고 신고한다.<br>시간이 걸리지만 안전하다.</div>
+    </div>
+    <div class="dcard" onclick="decide('confront')">
+      <span class="dcard-icon">👤</span>
+      <div class="dcard-name">정면 대치</div>
+      <div class="dcard-desc">K에게 모든 것을 말한다.<br>심리전의 끝.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     S7 — 결과
+══════════════════════════════════════ -->
+<div class="scr" id="s7">
+  <div class="res-type" id="res-type"></div>
+  <div class="res-title" id="res-title"></div>
+  <div class="res-body" id="res-body"></div>
+  <div class="res-next" id="res-next"></div>
+  <div class="res-btns">
+    <button class="rbtn main" onclick="restartGame()">다시 플레이</button>
+    <button class="rbtn" onclick="goTo('s0')">타이틀로</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+const G={
+  name:'',plays:0,screen:'s0',
+  timeLeft:900,timerInt:null,decTimerInt:null,
+  sus:0,exposure:0,emotion:'calm',
+  playerType:'',
+  cluesFound:[],actionsLeft:5,
+  hostageAlive:true,
+  dialogTurn:0,
+  selectedCards:[],
+  roomLocks:{basement:true},
+};
+
+// ── cursor ──
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+document.addEventListener('mousemove',e=>{
+  cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';
+  ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';
+});
+document.addEventListener('mousedown',()=>{cur.style.transform='translate(-50%,-50%) scale(1.6)';ring.style.transform='translate(-50%,-50%) scale(0.7)';});
+document.addEventListener('mouseup',()=>{cur.style.transform='translate(-50%,-50%) scale(1)';ring.style.transform='translate(-50%,-50%) scale(1)';});
+
+// ── window shadow hover ──
+const winHover=document.getElementById('win-hover'),winShadow=document.getElementById('win-shadow');
+if(winHover){
+  winHover.addEventListener('mouseenter',()=>{winShadow.style.opacity='1';});
+  winHover.addEventListener('mouseleave',()=>{winShadow.style.opacity='0';});
+}
+
+// ── stars ──
+const tstars=document.getElementById('tstars');
+for(let i=0;i<90;i++){
+  const s=document.createElement('div');s.className='tstar';
+  s.style.left=Math.random()*100+'%';s.style.top=Math.random()*75+'%';
+  s.style.setProperty('--td',(2+Math.random()*5)+'s');
+  s.style.animationDelay=Math.random()*5+'s';s.style.opacity=Math.random()*0.4+0.08;
+  s.style.width=s.style.height=(Math.random()>0.8?'2px':'1px');
+  tstars.appendChild(s);
+}
+
+// ── screen switch ──
+function goTo(id,skipHud){
+  document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  G.screen=id;
+  const gameScreens=['s3','s4','s5','s6'];
+  const hud=document.getElementById('hud');
+  if(!skipHud && gameScreens.includes(id)) hud.classList.add('on');
+  else if(!gameScreens.includes(id)) hud.classList.remove('on');
+
+  const locs={s3:'탐색 중',s4:'대화 심리전',s5:'단서 보드',s6:'최종 결정'};
+  document.getElementById('hud-loc').textContent='— '+(locs[id]||'—')+' —';
+
+  if(id==='s4') initDialog();
+  if(id==='s5') buildBoard();
+  if(id==='s6') startDecTimer();
+}
+
+// ── toast ──
+let toastT=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  if(toastT)clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('on'),2400);
+}
+
+// ═══════════════════════════════════════════
+//  TITLE
+// ═══════════════════════════════════════════
+function initTitle(){
+  G.plays = parseInt(localStorage.getItem('nhg_plays')||'0');
+  if(G.plays>0) document.getElementById('t-memory').classList.add('show');
+  document.getElementById('btn-newgame').addEventListener('click',()=>goTo('s1'));
+  document.getElementById('btn-continue').addEventListener('click',()=>{
+    const saved=localStorage.getItem('nhg_save');
+    if(saved){
+      const d=JSON.parse(saved);G.name=d.name;G.plays=d.plays||1;
+      toast(G.name+'의 기록을 불러왔습니다');
+      setTimeout(()=>startGameSetup(),1200);
+    } else toast('저장 데이터가 없습니다');
+  });
+}
+
+// ── name input ──
+function initNameInput(){
+  document.getElementById('pname').value='';
+  setTimeout(()=>document.getElementById('pname').focus(),400);
+}
+document.getElementById('pname').addEventListener('keydown',e=>{if(e.key==='Enter')confirmName();});
+document.getElementById('btn-nameok').addEventListener('click',confirmName);
+function confirmName(){
+  const v=document.getElementById('pname').value.trim();
+  if(!v){toast('이름을 입력해주세요');return;}
+  G.name=v;
+  goTo('s2');
+  initPrologue();
+}
+
+// ═══════════════════════════════════════════
+//  PROLOGUE (성향 분석)
+// ═══════════════════════════════════════════
+const PROLOG=[
+  {
+    text:`${()=>G.name}씨... 이 늦은 밤에 무슨 일이죠?`,
+    choices:[
+      {t:'잠깐 인사하러 왔어요.',tag:'회피형',type:'indirect',cb:()=>setPType('avoid')},
+      {t:'지하실에서 이상한 소리가 들렸어요.',tag:'공격형',type:'direct',cb:()=>setPType('attack')},
+      {t:'(주변을 조용히 살핀다)',tag:'탐색형',type:'silence',cb:()=>setPType('explore')},
+      {t:'...무서워 보이지 않으세요.',tag:'감정유도형',type:'emo',cb:()=>setPType('emotional')},
+    ]
+  },
+];
+const PTYPE_EMO={attack:{dot:'guard',lbl:'경계',eyes:'#a05050',mouth:'M72 116 Q80 112 88 116'},
+  avoid:{dot:'smile',lbl:'미소',eyes:'#4a7a9a',mouth:'M72 116 Q80 121 88 116'},
+  explore:{dot:'guard',lbl:'경계',eyes:'#e8b84b',mouth:'M72 116 Q80 114 88 116'},
+  emotional:{dot:'calm',lbl:'여유',eyes:'#5a3d8a',mouth:'M72 116 Q80 120 88 116'}};
+
+function initPrologue(){
+  typeText('pro-text',`...${G.name}씨, 이 늦은 밤에 무슨 일이죠?`);
+  const ch=document.getElementById('pro-choices');ch.innerHTML='';
+  PROLOG[0].choices.forEach(c=>{
+    const btn=document.createElement('button');btn.className='pcho';
+    btn.setAttribute('data-tag',c.tag);btn.textContent=c.t;
+    btn.addEventListener('click',()=>{
+      c.cb();
+      typeText('pro-text','...그렇군요. 알겠어요.');
+      btn.closest('.pro-choices').querySelectorAll('.pcho').forEach(b=>{b.style.opacity='0.3';b.disabled=true;});
+      btn.style.opacity='1';btn.style.borderColor='var(--plight)';
+      setTimeout(()=>startGameSetup(),1800);
+    });
+    ch.appendChild(btn);
+  });
+}
+function setPType(t){
+  G.playerType=t;
+  const e=PTYPE_EMO[t];
+  document.getElementById('pro-emo-dot').className='emo-dot '+e.dot;
+  document.getElementById('pro-emo-lbl').textContent=e.lbl;
+  document.getElementById('peye-l').setAttribute('fill',e.eyes);
+  document.getElementById('peye-r').setAttribute('fill',e.eyes);
+  document.getElementById('pmouth').setAttribute('d',e.mouth);
+  // AI learns type
+  if(t==='attack'){G.sus+=10;}
+  if(t==='explore'){G.exposure+=8;}
+}
+
+// ═══════════════════════════════════════════
+//  GAME SETUP
+// ═══════════════════════════════════════════
+function startGameSetup(){
+  G.plays++;
+  localStorage.setItem('nhg_plays',G.plays);
+  localStorage.setItem('nhg_save',JSON.stringify({name:G.name,plays:G.plays}));
+  resetGameState();
+  buildMap();
+  goTo('s3');
+  startTimer();
+  updateHUD();
+}
+
+function resetGameState(){
+  G.timeLeft=900;G.sus=0;G.exposure=0;G.emotion='calm';
+  G.cluesFound=[];G.actionsLeft=5;G.hostageAlive=true;
+  G.dialogTurn=0;G.selectedCards=[];
+  G.roomLocks={basement:true};
+  document.getElementById('g-sus').style.width='0%';
+  document.getElementById('g-exp').style.width='0%';
+  document.getElementById('h-hostage').textContent='생존 중';
+  document.getElementById('h-hostage').className='hstat-val alive';
+  document.getElementById('hud-time').classList.remove('danger');
+  document.getElementById('clue-list').innerHTML='<div style="font-size:10px;color:rgba(138,122,154,0.35);letter-spacing:0.2em;">방을 탐색하여 단서를 수집하세요</div>';
+  document.getElementById('clue-count').textContent='0';
+  updateEmoMeter(80,20,10,0);
+}
+
+// ═══════════════════════════════════════════
+//  TIMER
+// ═══════════════════════════════════════════
+function startTimer(){
+  if(G.timerInt)clearInterval(G.timerInt);
+  G.timerInt=setInterval(()=>{
+    G.timeLeft--;updateTimerDisp();
+    if(G.timeLeft<=120)document.getElementById('hud-time').classList.add('danger');
+    if(G.timeLeft<=0){clearInterval(G.timerInt);triggerResult('fail','시간 초과','제한 시간이 모두 지나버렸다.\n인질을 구하지 못했다.');}
+  },1000);
+}
+function updateTimerDisp(){
+  const m=Math.floor(G.timeLeft/60),s=G.timeLeft%60;
+  document.getElementById('hud-time').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+function updateHUD(){
+  updateTimerDisp();
+  document.getElementById('g-sus').style.width=G.sus+'%';
+  document.getElementById('g-exp').style.width=G.exposure+'%';
+}
+
+// ═══════════════════════════════════════════
+//  MAP / ROOMS
+// ═══════════════════════════════════════════
+const ROOMS=[
+  {id:'entrance',name:'현관',icon:'🚪',x:'38%',y:'68%',w:'24%',h:'18%',
+   clues:[{icon:'👟',txt:'진흙 묻은 신발',x:'25%',y:'50%'},{icon:'🔦',txt:'손전등 (배터리 없음)',x:'70%',y:'40%'}]},
+  {id:'living',name:'거실',icon:'🛋️',x:'5%',y:'38%',w:'30%',h:'24%',
+   clues:[{icon:'🩸',txt:'핏자국 (마른 것)',x:'30%',y:'65%'},{icon:'📓',txt:'일기장 — 마지막 페이지',x:'65%',y:'55%'}]},
+  {id:'kitchen',name:'부엌',icon:'🍳',x:'65%',y:'38%',w:'30%',h:'24%',
+   clues:[{icon:'🧪',txt:'이상한 약품 냄새',x:'30%',y:'50%'}]},
+  {id:'bedroom',name:'침실',icon:'🛏️',x:'5%',y:'8%',w:'28%',h:'25%',
+   clues:[{icon:'📷',txt:'사진첩 — 실종자 있음',x:'35%',y:'55%'},{icon:'📱',txt:'잠긴 휴대폰',x:'65%',y:'40%'}]},
+  {id:'study',name:'서재',icon:'📚',x:'38%',y:'8%',w:'24%',h:'25%',
+   clues:[{icon:'🗝️',txt:'지하실 열쇠',x:'40%',y:'50%'},{icon:'📝',txt:'암호 메모',x:'65%',y:'60%'}]},
+  {id:'basement',name:'지하실',icon:'⚠️',x:'68%',y:'8%',w:'27%',h:'25%',locked:true,
+   clues:[{icon:'👤',txt:'인질 — 생존 확인',x:'35%',y:'55%'},{icon:'📄',txt:'비밀 문서',x:'65%',y:'40%'}]},
+];
+
+function buildMap(){
+  const map=document.getElementById('game-map');
+  map.querySelectorAll('.room,.cspot').forEach(e=>e.remove());
+  ROOMS.forEach(r=>{
+    const div=document.createElement('div');div.className='room';
+    div.id='room-'+r.id;
+    div.style.left=r.x;div.style.top=r.y;div.style.width=r.w;div.style.height=r.h;
+    const isLocked=r.locked && G.roomLocks[r.id];
+    if(isLocked){
+      div.classList.add('locked');
+      div.innerHTML=`<span style="font-size:16px">🔒</span><span class="room-label">${r.name}</span>`;
+    } else {
+      div.innerHTML=`<span class="room-icon">${r.icon}</span><span class="room-label">${r.name}</span>`;
+      div.addEventListener('click',()=>enterRoom(r));
+    }
+    map.appendChild(div);
+  });
+}
+
+function enterRoom(room){
+  // highlight
+  document.querySelectorAll('.room').forEach(r=>r.classList.remove('active-r'));
+  document.getElementById('room-'+room.id).classList.add('active-r');
+  document.getElementById('hud-loc').textContent='— '+room.name+' —';
+  toast('🔍 '+room.name+' 진입');
+  // remove old cspots
+  document.querySelectorAll('.cspot').forEach(e=>e.remove());
+  const map=document.getElementById('game-map');
+  const roomEl=document.getElementById('room-'+room.id);
+  const rRect=roomEl.getBoundingClientRect();
+  const mRect=map.getBoundingClientRect();
+
+  room.clues.forEach((c,i)=>{
+    if(G.cluesFound.find(f=>f.txt===c.txt)) return;
+    const dot=document.createElement('div');dot.className='cspot';
+    // position relative to map
+    const rx=(rRect.left-mRect.left)/mRect.width*100 + parseFloat(c.x)/100*(rRect.width/mRect.width)*100;
+    const ry=(rRect.top-mRect.top)/mRect.height*100 + parseFloat(c.y)/100*(rRect.height/mRect.height)*100;
+    dot.style.left=rx+'%';dot.style.top=ry+'%';
+    dot.textContent=c.icon;dot.title=c.txt;
+    dot.addEventListener('click',()=>{
+      if(G.actionsLeft<=0){toast('오늘 행동이 모두 소진됐습니다');return;}
+      collectClue(c,dot);
+    });
+    map.appendChild(dot);
+  });
+  // AI response (learning)
+  aiLearnRoom(room.id);
+}
+
+function collectClue(c,dot){
+  G.cluesFound.push(c);
+  dot.classList.add('found');
+  dot.style.pointerEvents='none';
+  G.actionsLeft--;
+  G.timeLeft-=20;
+  toast(`단서 발견: ${c.txt}`);
+  updateCluePanel();
+  updateHUD();
+  // unlock basement if key found
+  if(c.txt.includes('열쇠')){
+    G.roomLocks.basement=false;
+    buildMap();
+    toast('🔑 지하실 자물쇠가 열렸습니다!');
+  }
+  updateActBtns();
+}
+
+function updateCluePanel(){
+  const list=document.getElementById('clue-list');
+  if(G.cluesFound.length===0)return;
+  list.innerHTML='';
+  G.cluesFound.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='clue-item'+(i===G.cluesFound.length-1?' new-clue':'');
+    div.innerHTML=`<span class="clue-icon">${c.icon}</span><span>${c.txt}</span>`;
+    list.appendChild(div);
+  });
+  document.getElementById('clue-count').textContent=G.cluesFound.length;
+}
+
+function updateActBtns(){
+  const disabled=G.actionsLeft<=0;
+  ['act-observe','act-investigate','act-sound','act-hide'].forEach(id=>{
+    const b=document.getElementById(id);if(b)b.disabled=disabled;
+  });
+}
+
+// ── AI learns room patterns ──
+const aiRoomLearn={};
+function aiLearnRoom(rid){
+  aiRoomLearn[rid]=(aiRoomLearn[rid]||0)+1;
+  if(aiRoomLearn[rid]>=3){
+    // AI locks room or creates trap
+    if(rid==='basement' && G.roomLocks.basement===false){
+      // fine
+    } else if(aiRoomLearn[rid]===3){
+      addSus(8);toast('👁 K가 당신을 지켜보고 있습니다...');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════
+function doAction(type){
+  if(G.actionsLeft<=0){toast('오늘 행동이 소진됐습니다');return;}
+  G.actionsLeft--;G.timeLeft-=30;
+  const msgs={
+    observe:'👁 조용히 관찰했다. 창문 너머로 그림자가 움직인다.',
+    investigate:'🔍 주변을 조사했다. 뭔가 감춰진 느낌이 든다.',
+    sound:'🔊 소리를 유도했다. 지하에서 반응이 있다...',
+    hide:'🫥 재빨리 숨었다. K가 지나쳐갔다.',
+  };
+  toast(msgs[type]);
+  if(type==='sound'){addSus(5);}
+  if(type==='investigate'){addExposure(8);}
+  updateHUD();updateActBtns();
+}
+
+function addSus(n){
+  G.sus=Math.min(100,G.sus+n);
+  document.getElementById('g-sus').style.width=G.sus+'%';
+  updateEmoFromSus();
+  if(G.sus>=100)triggerResult('ai','AI 역전','K가 모든 것을 눈치챘다.\n\n당신이 함정에 빠졌다.');
+}
+function addExposure(n){
+  G.exposure=Math.min(100,G.exposure+n);
+  document.getElementById('g-exp').style.width=G.exposure+'%';
+  if(G.exposure>=100)triggerResult('fail','발각','당신의 정체가 완전히 들켰다.');
+}
+function updateEmoFromSus(){
+  let calm=Math.max(0,80-G.sus),sus=Math.min(100,G.sus*0.6),guard=Math.min(100,G.sus*0.4),hostile=G.sus>60?G.sus-60:0;
+  updateEmoMeter(calm,sus,guard,hostile);
+  if(G.sus<30)setEmotion('calm');
+  else if(G.sus<60)setEmotion('guard');
+  else setEmotion('anger');
+}
+function updateEmoMeter(c,s,g,h){
+  document.getElementById('em-calm').style.width=c+'%';
+  document.getElementById('em-sus').style.width=s+'%';
+  document.getElementById('em-guard').style.width=g+'%';
+  document.getElementById('em-hostile').style.width=h+'%';
+}
+
+// ═══════════════════════════════════════════
+//  DIALOG
+// ═══════════════════════════════════════════
+const DIALOGS=[
+  {
+    lines:{calm:`...${()=>G.name}씨, 또 왔군요. 뭔가 용건이 있나요?`,guard:`...왜 자꾸 오는 거죠. 불편하네요.`,anger:`더 이상 대화하고 싶지 않아요.`},
+    choices:[
+      {t:'지하실에서 이상한 소리가 들렸어요.',type:'direct',tag:'직접질문',r:{calm:{sus:10,emo:'guard',txt:'...그건 보일러 소리예요. 오래된 집이라서.'},guard:{sus:15,emo:'guard',txt:'관계없는 일에 참견하지 마세요.'},anger:{sus:20,emo:'anger',txt:'지금 뭘 의심하는 건가요!'}}},
+      {t:'그냥 이웃끼리 안부 인사예요.',type:'indirect',tag:'돌려묻기',r:{calm:{sus:-5,emo:'calm',txt:'아, 그렇군요. 들어오실래요?'},guard:{sus:0,emo:'calm',txt:'...그래요. 별일 없어요.'},anger:{sus:-8,emo:'guard',txt:'...그렇게 말하니 좀 낫네요.'}}},
+      {t:'실종된 이웃 분 아시죠?',type:'direct',tag:'직접질문',r:{calm:{sus:12,emo:'guard',txt:'...모르는 사람이에요. 왜요?'},guard:{sus:18,emo:'anger',txt:'그 사람이랑 저랑 무슨 상관이에요?'},anger:{sus:25,emo:'anger',txt:'나가요, 지금 당장!'}}},
+      {t:'(아무 말 없이 눈을 맞춘다)',type:'silence',tag:'침묵유도',r:{calm:{sus:8,emo:'guard',txt:'...왜 그렇게 쳐다보는 거예요.'},guard:{sus:15,emo:'anger',txt:'불쾌해요. 돌아가세요.'},anger:{sus:5,emo:'anger',txt:'...(침묵)'}}},
+    ]
+  },
+  {
+    lines:{calm:`차 한 잔 드릴까요? 바쁜 것 같지 않아서.`,guard:`...용건이 있으면 빨리 말해요.`,anger:`왜 또 온 거예요.`},
+    choices:[
+      {t:'고마워요. 사실 한 가지만 물어볼게요.',type:'indirect',tag:'돌려묻기',r:{calm:{sus:0,emo:'calm',txt:'물론이죠. 뭔가요?'},guard:{sus:5,emo:'guard',txt:'...한 가지만이요.'},anger:{sus:-5,emo:'guard',txt:'...그래요. 뭔데요.'}}},
+      {t:'지하실에 누군가 있는 거 아닌가요?',type:'direct',tag:'직접질문',r:{calm:{sus:18,emo:'anger',txt:'...!!! 무슨 근거로!'},guard:{sus:22,emo:'anger',txt:'당신 지금 뭘 말하는 거예요!'},anger:{sus:28,emo:'anger',txt:'나가요!!! 지금 당장!!!'}}},
+      {t:'혹시 요즘 힘든 일 있으세요?',type:'emo',tag:'감정유도',r:{calm:{sus:-8,emo:'calm',txt:'...그런 거 없어요. 왜요?'},guard:{sus:-5,emo:'calm',txt:'...뭐, 뭐가 힘들겠어요.'},anger:{sus:-10,emo:'guard',txt:'...(잠시 멈추며) 아니요.'}}},
+      {t:'(주머니에서 메모를 꺼내 보인다)',type:'silence',tag:'침묵유도',r:{calm:{sus:15,emo:'guard',txt:'그, 그게... 어디서 났어요?'},guard:{sus:20,emo:'anger',txt:'그거... 내 거잖아요.'},anger:{sus:30,emo:'anger',txt:'...(얼굴이 굳는다)'}}},
+    ]
+  },
+  {
+    lines:{calm:`...오늘은 좀 일찍 들어가요. 밤이 늦었어요.`,guard:`마지막으로 묻겠는데, 뭘 원하는 거예요?`,anger:`더 할 말 없어요.`},
+    choices:[
+      {t:'당신을 믿어요. 하지만 지하실만은.',type:'direct',tag:'직접질문',r:{calm:{sus:8,emo:'guard',txt:'...지하실은 안 돼요. 절대로.'},guard:{sus:12,emo:'anger',txt:'믿는다면서 왜 의심해요!'},anger:{sus:5,emo:'anger',txt:'...'}}},
+      {t:'마지막으로 한 번만 부탁드려요.',type:'emo',tag:'감정유도',r:{calm:{sus:-5,emo:'calm',txt:'...뭘요?'},guard:{sus:0,emo:'guard',txt:'...뭔데요.'},anger:{sus:-8,emo:'guard',txt:'...말해봐요.'}}},
+      {t:'모든 걸 알고 있어요.',type:'direct',tag:'직접질문',r:{calm:{sus:20,emo:'anger',txt:'...!!!'},guard:{sus:25,emo:'anger',txt:'무슨 말을...!!!'},anger:{sus:15,emo:'anger',txt:'...(긴 침묵) 그래서요?'}}},
+    ]
+  },
+];
+
+function initDialog(){
+  setEmotion(G.emotion);
+  renderDialog();
+}
+
+function renderDialog(){
+  const idx=Math.min(G.dialogTurn,DIALOGS.length-1);
+  const d=DIALOGS[idx];
+  const line=d.lines[G.emotion]||d.lines.calm;
+  const nameText=line.replace('${()=>G.name}',G.name).replace(/\$\{[^}]*\}/g,G.name);
+  typeText('d-txt',nameText.replace('()=>G.name',G.name));
+  document.getElementById('d-who').textContent='K — '+{calm:'여유롭게',guard:'경계하며',anger:'화내며'}[G.emotion];
+
+  const ch=document.getElementById('d-choices');ch.innerHTML='';
+  d.choices.forEach(c=>{
+    const btn=document.createElement('button');btn.className='dcho '+c.type;
+    btn.setAttribute('data-tag',c.tag);btn.textContent=c.t;
+    btn.addEventListener('click',()=>{
+      const resp=c.r[G.emotion]||c.r.calm;
+      ch.querySelectorAll('.dcho').forEach(b=>{b.style.opacity='0.25';b.disabled=true;});
+      btn.style.opacity='1';btn.style.borderColor='var(--plight)';
+      addSus(resp.sus);setEmotion(resp.emo);
+      document.getElementById('d-who').textContent='K — 반응';
+      typeText('d-txt',resp.txt);
+      G.dialogTurn++;
+      setTimeout(()=>{
+        if(G.dialogTurn<DIALOGS.length){
+          renderDialog();
+        } else {
+          ch.innerHTML='<div style="text-align:center;padding:16px;"><button class="dcho indirect" onclick="goTo(\'s3\')">... 자리를 피한다</button></div>';
+          typeText('d-txt','더 이상 할 말이 없다는 듯 문을 닫는다.');
+        }
+      },2200);
+    });
+    ch.appendChild(btn);
+  });
+}
+
+function setEmotion(emo){
+  G.emotion=emo;
+  const cfg={
+    calm:{dot:'ease',lbl:'여유',eyes:'#2a8a5a',mouth:'M80 122 Q90 128 100 122',bl:'M69 94 Q76 92 83 94',br:'M96 94 Q103 92 110 94'},
+    guard:{dot:'guard',lbl:'경계',eyes:'#e8b84b',mouth:'M80 122 Q90 124 100 122',bl:'M69 91 Q76 89 83 91',br:'M96 91 Q103 89 110 91'},
+    anger:{dot:'anger',lbl:'분노',eyes:'#a52828',mouth:'M80 126 Q90 120 100 126',bl:'M69 88 Q76 91 83 88',br:'M96 88 Q103 91 110 88'},
+  };
+  const c=cfg[emo]||cfg.guard;
+  const dot=document.getElementById('d-emo-dot');
+  if(dot){dot.className='dlg-emo-dot '+c.dot;}
+  const lbl=document.getElementById('d-emo-lbl');if(lbl)lbl.textContent=c.lbl;
+  const el=document.getElementById('deye-l'),er=document.getElementById('deye-r');
+  if(el)el.setAttribute('fill',c.eyes);if(er)er.setAttribute('fill',c.eyes);
+  const dm=document.getElementById('dmouth');if(dm)dm.setAttribute('d',c.mouth);
+  const bl=document.getElementById('dbrow-l'),br=document.getElementById('dbrow-r');
+  if(bl)bl.setAttribute('d',c.bl);if(br)br.setAttribute('d',c.br);
+  // red vignette on anger
+  document.getElementById('rvign').style.opacity=emo==='anger'?'1':'0';
+  document.getElementById('glitch').classList.toggle('on',emo==='anger');
+}
+
+// ═══════════════════════════════════════════
+//  BOARD
+// ═══════════════════════════════════════════
+const DEDUCTIONS=[
+  {keys:['핏자국','일기장'],txt:'"핏자국과 일기장... 지하실에 뭔가 있다."'},
+  {keys:['열쇠','암호 메모'],txt:'"열쇠와 메모가 있다. 지하실에 들어갈 수 있다."'},
+  {keys:['사진첩','실종자'],txt:'"사진첩에 실종자가 있다. K가 연관돼 있다."'},
+  {keys:['인질','비밀 문서'],txt:'"지하실에 인질이 있고 증거도 있다. 이게 끝이다."'},
+  {keys:['약품','핏자국'],txt:'"약품과 핏자국... 누군가 다쳐 있을 수도 있다."'},
+];
+
+function buildBoard(){
+  const wrap=document.getElementById('board-wrap');
+  wrap.querySelectorAll('.ccard').forEach(e=>e.remove());
+  document.getElementById('board-svg').innerHTML='';
+  document.getElementById('ded-bubble').classList.remove('show');
+  G.selectedCards=[];
+  if(G.cluesFound.length===0){toast('단서가 없습니다. 먼저 탐색하세요.');return;}
+
+  G.cluesFound.forEach((c,i)=>{
+    const card=document.createElement('div');card.className='ccard';
+    const col=i%4,row=Math.floor(i/4);
+    const baseX=8+col*28,baseY=10+row*32;
+    const jx=(Math.random()-0.5)*6,jy=(Math.random()-0.5)*6;
+    const rot=(Math.random()-0.5)*8;
+    card.style.left=(baseX+jx)+'%';card.style.top=(baseY+jy+8)+'%';
+    card.style.transform=`rotate(${rot}deg)`;
+    card.innerHTML=`<span class="ccard-icon">${c.icon}</span><div class="ccard-title">${c.txt}</div>`;
+    card.dataset.clue=c.txt;
+    card.addEventListener('click',()=>selectCard(card,c));
+    wrap.appendChild(card);
+  });
+}
+
+function selectCard(card,c){
+  if(card.classList.contains('selected')){
+    card.classList.remove('selected');
+    G.selectedCards=G.selectedCards.filter(x=>x.txt!==c.txt);
+    drawConnections();
+  } else {
+    card.classList.add('selected');
+    G.selectedCards.push(c);
+    drawConnections();
+    checkDeductions();
+  }
+}
+
+function drawConnections(){
+  const svg=document.getElementById('board-svg');svg.innerHTML='';
+  const cards=document.querySelectorAll('.ccard.selected');
+  if(cards.length<2)return;
+  const wrap=document.getElementById('board-wrap');
+  const wr=wrap.getBoundingClientRect();
+  for(let i=0;i<cards.length-1;i++){
+    const a=cards[i].getBoundingClientRect(),b=cards[i+1].getBoundingClientRect();
+    const x1=(a.left+a.width/2-wr.left)/wr.width*100;
+    const y1=(a.top+a.height/2-wr.top)/wr.height*100;
+    const x2=(b.left+b.width/2-wr.left)/wr.width*100;
+    const y2=(b.top+b.height/2-wr.top)/wr.height*100;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1+'%');line.setAttribute('y1',y1+'%');
+    line.setAttribute('x2',x2+'%');line.setAttribute('y2',y2+'%');
+    line.setAttribute('stroke','rgba(232,184,75,0.5)');line.setAttribute('stroke-width','1.5');
+    line.setAttribute('stroke-dasharray','4,4');
+    svg.appendChild(line);
+  }
+}
+
+function checkDeductions(){
+  const selected=G.selectedCards.map(c=>c.txt);
+  const bub=document.getElementById('ded-bubble');
+  for(const d of DEDUCTIONS){
+    const match=d.keys.every(k=>selected.some(s=>s.includes(k.replace(/\s/g,'').substring(0,4))||s.includes(k)));
+    if(match){
+      bub.textContent='';bub.classList.remove('show');
+      // AI sometimes gives wrong deduction
+      const isWrong=G.plays>1 && Math.random()<0.3;
+      const txt=isWrong?'"...이건 아무 의미 없는 것 같다. (AI가 미끼를 뿌린다)"':d.txt;
+      typeText('ded-bubble',txt);
+      setTimeout(()=>bub.classList.add('show'),100);
+      return;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  DECISION
+// ═══════════════════════════════════════════
+let decT=10;
+function startDecTimer(){
+  if(G.decTimerInt)clearInterval(G.decTimerInt);
+  decT=15;
+  const timerEl=document.getElementById('dec-timer');
+  timerEl.style.display='block';timerEl.textContent=decT;
+  const flavorEl=document.getElementById('dec-flavor');
+  const enough=G.cluesFound.length>=4;
+  flavorEl.textContent=enough
+    ?`증거가 충분하다. ${G.name}, 결정의 순간이다.\n더 이상 시간이 없다.`
+    :`증거가 부족하다... 하지만 선택해야만 한다.\n시간이 없다.`;
+  G.decTimerInt=setInterval(()=>{
+    decT--;timerEl.textContent=decT;
+    if(decT<=0){clearInterval(G.decTimerInt);decide('auto');}
+  },1000);
+}
+
+function decide(type){
+  clearInterval(G.decTimerInt);
+  document.getElementById('dec-timer').style.display='none';
+  clearInterval(G.timerInt);
+  const enough=G.cluesFound.length>=4;
+  const hasKey=G.cluesFound.some(c=>c.txt.includes('열쇠'));
+  const hasIntel=G.cluesFound.some(c=>c.txt.includes('인질'));
+
+  // MOST OUTCOMES LEAD TO RESCUE (기획: 대부분 탈출)
+  if(type==='auto'){
+    triggerResult('partial','시간 초과 — 부분 성공',`망설이다 너무 늦었다.\n하지만 경찰이 먼저 도착해 인질은 구출됐다.\nK는 도주했다.`);
+    return;
+  }
+  if(type==='raid'){
+    if(enough && hasKey){
+      if(hasIntel)triggerResult('success','완전 성공 · 인질 구출',`지하실 문을 부수고 들어갔다.\n인질은 살아있었다.\nK는 체포됐다.\n\n모든 진실이 드러났다.`);
+      else triggerResult('success','성공 · 인질 구출',`지하실을 급습했다. 인질은 무사했다.\nK는 현장에서 체포됐다.`);
+    } else if(hasKey){
+      triggerResult('partial','부분 성공',`지하실에 들어갔다. 인질을 구출했다.\n하지만 K는 이미 도망간 후였다.\n\n다음엔 더 빨라야 한다.`);
+    } else {
+      triggerResult('partial','부분 성공 — 아슬아슬',`열쇠 없이 문을 부쉈다.\n소란 속에서 인질이 탈출에 성공했다.\nK는 혼란을 틈타 도주했다.`);
+    }
+  }
+  if(type==='police'){
+    if(enough){
+      triggerResult('success','성공 · 경찰 출동',`증거를 제시하고 신고했다.\n경찰이 신속히 출동해 인질을 구출했다.\nK는 현장에서 체포됐다.`);
+    } else {
+      triggerResult('partial','부분 성공',`증거는 부족했지만 신고를 했다.\n경찰이 수색 끝에 인질을 발견했다.\nK는 도주 중 체포됐다.`);
+    }
+  }
+  if(type==='confront'){
+    if(G.emotion==='calm' || G.sus<40){
+      triggerResult('success','진실 엔딩 · 정면 돌파',`K와 마주 섰다.\n모든 증거를 내밀었다.\n\n"...알았어요. 끝난 것 같네요."\n\nK는 스스로 무너졌다.\n인질은 구출됐고 K는 자수했다.`);
+    } else if(G.sus<70){
+      triggerResult('partial','부분 성공',`K와 대치했다.\n긴장감 속에서 인질은 탈출에 성공했다.\nK는 결국 경찰에 연행됐다.`);
+    } else {
+      triggerResult('partial','아슬아슬한 성공',`K가 먼저 눈치챘다.\n위험한 순간이었지만 인질이 틈을 봐 탈출했다.\n당신도 겨우 빠져나왔다.`);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  RESULTS
+// ═══════════════════════════════════════════
+const RESULT_BG={
+  success:'radial-gradient(ellipse at 50% 40%,#0d2818 0%,#07050f 70%)',
+  partial:'radial-gradient(ellipse at 50% 40%,#1a1808 0%,#07050f 70%)',
+  fail:'radial-gradient(ellipse at 50% 40%,#280d0d 0%,#07050f 70%)',
+  ai:'radial-gradient(ellipse at 50% 40%,#280d28 0%,#07050f 70%)',
+};
+const RESULT_TYPE_LBL={
+  success:'SUCCESS — 인질 구출',
+  partial:'PARTIAL SUCCESS — 부분 성공',
+  fail:'FAIL — 실패',
+  ai:'AI REVERSAL — K의 역전',
+};
+function triggerResult(type,title,body){
+  if(G.timerInt)clearInterval(G.timerInt);
+  if(G.decTimerInt)clearInterval(G.decTimerInt);
+  const s=document.getElementById('s7');
+  s.style.background=RESULT_BG[type]||RESULT_BG.fail;
+  document.getElementById('res-type').className='res-type '+type;
+  document.getElementById('res-type').textContent=RESULT_TYPE_LBL[type];
+  document.getElementById('res-title').textContent=title;
+  document.getElementById('res-body').textContent=body;
+  const nextMsgs={
+    success:'다음 회차에서 K의 과거를 파헤치세요.',
+    partial:'2회차: K의 AI 학습 난이도가 상승합니다.',
+    fail:'다시 시작하여 다른 선택을 해보세요.',
+    ai:'K가 당신의 패턴을 완전히 학습했습니다.',
+  };
+  document.getElementById('res-next').textContent=nextMsgs[type]||'';
+  goTo('s7',true);
+  document.getElementById('hud').classList.remove('on');
+  if(type==='fail'||type==='ai'){
+    document.getElementById('rvign').style.opacity='0.6';
+    document.getElementById('glitch').classList.add('on');
+    setTimeout(()=>{document.getElementById('glitch').classList.remove('on');},2000);
+  }
+}
+
+function restartGame(){
+  document.getElementById('rvign').style.opacity='0';
+  document.getElementById('glitch').classList.remove('on');
+  G.dialogTurn=0;G.selectedCards=[];
+  resetGameState();
+  buildMap();
+  goTo('s3');
+  startTimer();
+  updateHUD();
+}
+
+// ═══════════════════════════════════════════
+//  TYPEWRITER
+// ═══════════════════════════════════════════
+const typeTimers={};
+function typeText(id,text,speed=38){
+  if(typeTimers[id])clearInterval(typeTimers[id]);
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent='';let i=0;
+  typeTimers[id]=setInterval(()=>{
+    if(i<text.length){el.textContent+=text[i++];}
+    else clearInterval(typeTimers[id]);
+  },speed);
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+initTitle();
+</script>
+</body>
+</html>
