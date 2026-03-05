@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>옆집과의 숨바꼭질</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0a0c14;
+  --deep: #0f1420;
+  --navy: #151c30;
+  --slate: #1e2840;
+  --purple: #4a3570;
+  --indigo: #3d4fa0;
+  --cyan: #6ec6e0;
+  --amber: #e8b84b;
+  --red: #c0392b;
+  --red-bright: #e74c3c;
+  --green: #27ae60;
+  --text: #d8d0c4;
+  --text-dim: #7a7568;
+  --gold: #f0c040;
+  --white: #f0ece4;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--ink);}
+body{font-family:'Noto Sans KR',sans-serif;color:var(--text);cursor:default;}
+
+#noise{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:nFlicker .07s infinite;}
+@keyframes nFlicker{0%,100%{opacity:.035;transform:translate(0,0)}50%{opacity:.045;transform:translate(-1px,1px)}}
+
+.scene{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.scene.active{display:flex;}
+
+/* ── S1-A ── */
+#s1a{background:#000;text-align:center;}
+#s1a-text{font-family:'Noto Serif KR',serif;font-size:clamp(14px,2.2vw,20px);
+  color:#888;letter-spacing:.35em;line-height:2.4;opacity:0;
+  animation:fadeUp 2.5s ease 1.2s forwards;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── S1-B ── */
+#s1b{background:#060810;overflow:hidden;}
+#house-scene{position:relative;width:min(520px,90vw);height:min(320px,55vw);}
+#house-scene svg{width:100%;height:100%;}
+
+#cctv-ui{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .3s;z-index:200;}
+#cctv-ui.show{opacity:1;}
+.cctv-corner{position:absolute;width:24px;height:24px;border-color:rgba(0,255,80,.55);border-style:solid;}
+.cctv-corner.tl{top:14px;left:14px;border-width:2px 0 0 2px;}
+.cctv-corner.tr{top:14px;right:14px;border-width:2px 2px 0 0;}
+.cctv-corner.bl{bottom:14px;left:14px;border-width:0 0 2px 2px;}
+.cctv-corner.br{bottom:14px;right:14px;border-width:0 2px 2px 0;}
+.cctv-rec{position:absolute;top:16px;left:44px;font-size:11px;color:rgba(255,60,60,.8);
+  font-family:monospace;letter-spacing:.1em;display:flex;align-items:center;gap:5px;}
+.cctv-rec::before{content:'●';animation:recBlink 1s infinite;}
+@keyframes recBlink{0%,100%{opacity:1}50%{opacity:.2}}
+.cctv-label{position:absolute;top:16px;right:44px;font-size:11px;color:rgba(0,255,80,.6);font-family:monospace;}
+@keyframes shakeAnim{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,2px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,3px)}80%{transform:translate(2px,-1px)}}
+.do-shake{animation:shakeAnim .35s ease!important;}
+
+/* ── S1-C ── */
+#s1c{background:var(--ink);flex-direction:column;gap:32px;}
+#s1c-prompt{font-family:'Noto Serif KR',serif;font-size:clamp(13px,1.8vw,17px);
+  color:#999;letter-spacing:.25em;text-align:center;opacity:0;
+  animation:fadeUp 1.5s ease .3s forwards;}
+#name-form{display:flex;flex-direction:column;align-items:center;gap:16px;opacity:0;
+  animation:fadeUp 1.5s ease .9s forwards;}
+#name-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.25);
+  color:var(--white);font-family:'Noto Serif KR',serif;font-size:clamp(18px,3vw,26px);
+  text-align:center;letter-spacing:.2em;padding:8px 4px;width:min(280px,70vw);outline:none;
+  transition:border-color .3s;}
+#name-input:focus{border-color:rgba(255,255,255,.6);}
+#name-btn{background:transparent;border:1px solid rgba(255,255,255,.3);color:var(--text-dim);
+  font-family:'Noto Sans KR',sans-serif;font-size:13px;letter-spacing:.2em;
+  padding:10px 32px;cursor:pointer;transition:all .3s;}
+#name-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+#ai-response{font-family:'Noto Serif KR',serif;font-size:clamp(14px,2vw,19px);
+  color:var(--cyan);letter-spacing:.15em;text-align:center;opacity:0;min-height:40px;transition:opacity .8s;}
+#ai-response.show{opacity:1;}
+
+/* ── S1-D ── */
+#s1d{background:var(--deep);padding:0;overflow-y:auto;justify-content:flex-start;}
+#briefing-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,#1a1428 0%,var(--ink) 70%);pointer-events:none;}
+#briefing-wrap{position:relative;width:min(640px,92vw);z-index:2;padding:40px 0 30px;}
+.brief-header-tag{font-size:11px;letter-spacing:.3em;color:var(--red-bright);font-family:monospace;margin-bottom:8px;text-align:center;}
+.brief-header-h{font-family:'Noto Serif KR',serif;font-size:clamp(18px,3vw,26px);color:var(--white);letter-spacing:.1em;text-align:center;margin-bottom:28px;}
+.brief-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  border-left:3px solid var(--indigo);padding:18px 22px;margin-bottom:12px;
+  opacity:0;transform:translateX(-16px);transition:all .5s ease;}
+.brief-card.visible{opacity:1;transform:translateX(0);}
+.brief-card .label{font-size:10px;letter-spacing:.25em;color:var(--indigo);margin-bottom:6px;font-family:monospace;}
+.brief-card p{font-size:clamp(13px,1.7vw,14px);line-height:1.95;color:var(--text);}
+.brief-card.goal{border-left-color:var(--amber);background:rgba(232,184,75,.07);}
+.brief-card.goal p{color:var(--amber);font-weight:700;font-size:clamp(14px,2vw,16px);}
+#brief-next{align-self:flex-end;background:transparent;border:1px solid rgba(255,255,255,.25);
+  color:var(--text-dim);font-size:13px;letter-spacing:.2em;padding:10px 28px;
+  cursor:pointer;transition:all .3s;font-family:'Noto Sans KR',sans-serif;margin-top:8px;}
+#brief-next:hover{border-color:var(--amber);color:var(--amber);}
+
+/* ── S1-E ── */
+#s1e{background:var(--ink);overflow:hidden;}
+#cutscene-map{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  animation:zoomOut 2.8s ease forwards;}
+@keyframes zoomOut{from{transform:scale(1.5)}to{transform:scale(1)}}
+#town-name-cutscene{position:absolute;top:10%;left:50%;transform:translateX(-50%);
+  font-family:'Noto Serif KR',serif;font-size:clamp(22px,4vw,38px);
+  color:var(--white);letter-spacing:.4em;opacity:0;
+  animation:fadeUp 1.5s ease 1s forwards;text-shadow:0 2px 20px rgba(0,0,0,.8);}
+#cutscene-skip{position:absolute;bottom:24px;right:28px;font-size:12px;color:var(--text-dim);
+  letter-spacing:.15em;cursor:pointer;padding:8px 16px;border:1px solid rgba(255,255,255,.15);transition:all .3s;}
+#cutscene-skip:hover{color:var(--white);}
+
+/* ── HUD ── */
+.hud-bar{display:flex;align-items:center;background:rgba(0,0,0,.6);
+  border-bottom:1px solid rgba(255,255,255,.08);padding:0 18px;height:46px;flex-shrink:0;
+  backdrop-filter:blur(8px);}
+.hud-item{display:flex;align-items:center;gap:7px;padding:0 14px;
+  border-right:1px solid rgba(255,255,255,.07);font-size:11px;color:var(--text-dim);letter-spacing:.08em;}
+.hud-item:last-child{border-right:none;}
+.hud-item .val{color:var(--white);font-weight:700;font-family:monospace;font-size:12px;}
+.hud-item .icon{font-size:13px;}
+#alert-gauge{width:70px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;}
+#alert-fill{height:100%;border-radius:3px;background:var(--green);transition:width .5s,background .5s;width:0%;}
+.ml-auto{margin-left:auto;}
+
+/* ── S2 마을 지도 ── */
+#s2{background:var(--deep);flex-direction:column;padding:0;align-items:stretch;justify-content:flex-start;}
+#map-main{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+#town-title-lbl{position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  font-family:'Noto Serif KR',serif;font-size:clamp(14px,2.2vw,20px);
+  color:var(--white);letter-spacing:.4em;text-shadow:0 2px 12px rgba(0,0,0,.9);
+  background:rgba(0,0,0,.45);padding:5px 18px;border:1px solid rgba(255,255,255,.1);z-index:5;}
+#map-svg-wrap{position:relative;width:min(680px,95vw);height:min(460px,63vw);}
+#map-bg-div{position:absolute;inset:0;border-radius:4px;
+  background:radial-gradient(ellipse at 25% 30%,#1e3a1e 0%,transparent 45%),
+    radial-gradient(ellipse at 70% 60%,#1a2848 0%,transparent 40%),
+    radial-gradient(ellipse at 50% 85%,#24221a 0%,transparent 50%),
+    linear-gradient(160deg,#162018 0%,#141628 50%,#1a1610 100%);
+  border:1px solid rgba(255,255,255,.08);box-shadow:0 0 60px rgba(0,0,0,.8);}
+
+.building{position:absolute;cursor:pointer;transition:filter .25s,transform .2s;}
+.building:hover{filter:brightness(1.35);transform:scale(1.05);}
+.building:hover .b-label{opacity:1;transform:translateX(-50%) translateY(0);}
+.b-label{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%) translateY(4px);
+  white-space:nowrap;background:rgba(10,12,20,.9);border:1px solid rgba(255,255,255,.2);
+  color:var(--white);font-size:10px;letter-spacing:.1em;padding:4px 10px;
+  opacity:0;transition:all .25s;pointer-events:none;font-family:'Noto Sans KR',sans-serif;}
+
+#b-neighbor{left:55%;top:18%;width:88px;height:88px;}
+#b-police{left:7%;top:14%;width:72px;height:68px;}
+#b-store{left:14%;top:54%;width:62px;height:58px;}
+#b-church{left:73%;top:54%;width:68px;height:76px;}
+#b-hall{left:40%;top:62%;width:78px;height:62px;}
+#b-ruins{left:76%;top:10%;width:58px;height:52px;filter:brightness(.45);cursor:not-allowed;}
+#b-ruins:hover{transform:none;filter:brightness(.5);}
+
+#bldg-popup{position:absolute;background:rgba(10,12,20,.96);border:1px solid rgba(255,255,255,.18);
+  padding:14px 16px;min-width:196px;z-index:50;display:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);}
+#bldg-popup h4{font-family:'Noto Serif KR',serif;font-size:13px;color:var(--white);margin-bottom:5px;}
+#bldg-popup p{font-size:11px;color:var(--text-dim);line-height:1.7;}
+#bldg-popup .pop-btn{margin-top:11px;width:100%;background:rgba(61,79,160,.3);
+  border:1px solid var(--indigo);color:var(--cyan);font-size:11px;letter-spacing:.12em;
+  padding:7px;cursor:pointer;transition:all .3s;font-family:'Noto Sans KR',sans-serif;}
+#bldg-popup .pop-btn:hover{background:rgba(61,79,160,.5);}
+
+#map-btns{display:flex;gap:10px;padding:11px 18px;background:rgba(0,0,0,.5);
+  border-top:1px solid rgba(255,255,255,.07);flex-wrap:wrap;justify-content:center;flex-shrink:0;}
+.map-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);
+  color:var(--text-dim);font-size:11px;letter-spacing:.14em;padding:8px 18px;
+  cursor:pointer;transition:all .3s;font-family:'Noto Sans KR',sans-serif;}
+.map-btn:hover{background:rgba(255,255,255,.1);color:var(--white);}
+.map-btn.primary{border-color:var(--indigo);color:var(--cyan);}
+.map-btn.primary:hover{background:rgba(61,79,160,.2);}
+
+/* ── S3 탐색 ── */
+#s3{background:var(--navy);flex-direction:column;padding:0;align-items:stretch;justify-content:flex-start;}
+#floor-plan{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(170deg,#0d1520 0%,#0f1624 50%,#0a1018 100%);}
+#floor-wrap{position:relative;width:min(720px,96vw);height:min(390px,53vw);}
+
+.room{position:absolute;border:1px solid rgba(255,255,255,.1);cursor:pointer;
+  transition:all .28s;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding-bottom:9px;overflow:hidden;}
+.room::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .28s;
+  background:rgba(110,198,224,.06);}
+.room:hover::before{opacity:1;}
+.room:hover{border-color:rgba(110,198,224,.38);box-shadow:0 0 18px rgba(110,198,224,.09);}
+.room-name{font-size:10px;letter-spacing:.2em;color:var(--text-dim);font-family:monospace;z-index:1;}
+.room-icon{font-size:clamp(22px,3.5vw,32px);margin-bottom:4px;z-index:1;}
+.room.explored{opacity:.55;cursor:default;}
+.room.explored::after{content:'✓';position:absolute;top:7px;right:9px;font-size:11px;color:var(--green);}
+.room.danger{border-color:rgba(192,57,43,.28);animation:dangerPulse 2.2s infinite;}
+@keyframes dangerPulse{0%,100%{box-shadow:0 0 0 rgba(192,57,43,0)}50%{box-shadow:0 0 16px rgba(192,57,43,.28)}}
+
+#room-living{left:0;top:0;width:32%;height:54%;background:rgba(18,24,38,.7);}
+#room-kitchen{left:33%;top:0;width:31%;height:44%;background:rgba(16,22,16,.7);}
+#room-hall{left:33%;top:46%;width:31%;height:54%;background:rgba(14,17,26,.7);}
+#room-bedroom{left:65%;top:0;width:35%;height:54%;background:rgba(20,16,28,.7);}
+#room-basement{left:0;top:56%;width:32%;height:44%;background:rgba(11,9,17,.8);}
+#room-storage{left:65%;top:56%;width:35%;height:44%;background:rgba(15,13,10,.7);}
+
+#s3-actions{display:flex;gap:9px;padding:11px 18px;background:rgba(0,0,0,.55);
+  border-top:1px solid rgba(255,255,255,.07);flex-wrap:wrap;justify-content:center;flex-shrink:0;}
+.act-btn{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.11);
+  color:var(--text-dim);font-size:11px;letter-spacing:.14em;padding:8px 16px;
+  cursor:pointer;transition:all .3s;font-family:'Noto Sans KR',sans-serif;}
+.act-btn:hover{background:rgba(255,255,255,.09);color:var(--white);border-color:rgba(255,255,255,.26);}
+.act-btn.hl{border-color:var(--amber);color:var(--amber);}
+.act-btn.hl:hover{background:rgba(232,184,75,.1);}
+
+/* ── S4 대화 ── */
+#s4{background:var(--ink);flex-direction:column;padding:0;align-items:stretch;justify-content:flex-start;}
+#dial-bg{position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 75% 20%,rgba(110,198,224,.05) 0%,transparent 40%),
+    radial-gradient(ellipse at 20% 60%,rgba(26,20,40,.9) 0%,transparent 50%),
+    linear-gradient(135deg,#0d1520 0%,#130e1e 55%,#0f0d14 100%);}
+.bg-shelf{position:absolute;background:rgba(60,40,20,.55);border-top:2px solid rgba(80,55,30,.45);}
+#sh1{left:4%;top:28%;width:90px;height:10px;}
+#sh2{right:7%;top:22%;width:74px;height:10px;}
+.bg-win{position:absolute;border:2px solid rgba(110,198,224,.13);background:rgba(110,198,224,.03);}
+#win1{right:9%;top:7%;width:84px;height:64px;}
+.bg-plant{position:absolute;font-size:30px;opacity:.22;}
+#pl1{left:2%;bottom:22%;}
+
+#char-area{position:absolute;bottom:142px;left:0;width:min(250px,36vw);z-index:5;}
+#char-emotion{position:absolute;top:-6px;right:14px;font-size:18px;animation:emotBounce .4s ease;}
+@keyframes emotBounce{from{transform:scale(.4) translateY(8px)}to{transform:scale(1) translateY(0)}}
+#char-sprite{width:100%;filter:drop-shadow(0 4px 20px rgba(0,0,0,.8));transition:filter .5s;}
+#char-sprite.tense{filter:drop-shadow(0 4px 20px rgba(74,53,112,.4)) brightness(.88);}
+#char-sprite.angry{filter:drop-shadow(0 4px 20px rgba(192,57,43,.55)) sepia(.3) saturate(1.3) hue-rotate(-12deg);}
+
+#speech-bubble{position:absolute;top:56px;right:14px;max-width:min(300px,45vw);
+  background:rgba(10,12,20,.9);border:1px solid rgba(255,255,255,.17);
+  padding:13px 16px;z-index:6;box-shadow:0 4px 24px rgba(0,0,0,.7);}
+#speech-bubble::before{content:'';position:absolute;left:-8px;top:14px;
+  border:6px solid transparent;border-right-color:rgba(10,12,20,.9);}
+#speech-text{font-size:clamp(12px,1.55vw,13px);line-height:1.95;color:var(--text);
+  font-family:'Noto Serif KR',serif;letter-spacing:.05em;}
+
+#dialogue-bottom{position:absolute;bottom:0;left:0;right:0;z-index:8;
+  background:rgba(8,10,18,.93);border-top:1px solid rgba(255,255,255,.09);backdrop-filter:blur(12px);}
+#name-bar{padding:7px 16px 5px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+#speaker-name{font-family:'Noto Serif KR',serif;font-size:13px;color:var(--amber);letter-spacing:.15em;}
+#emotion-tag{font-size:10px;color:var(--text-dim);font-family:monospace;}
+#main-dial-text{padding:9px 16px 10px;font-size:clamp(12px,1.6vw,13px);line-height:2;color:var(--text);min-height:46px;letter-spacing:.04em;}
+#choices-area{padding:7px 12px 12px;display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.ch-btn{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+  color:var(--text-dim);font-size:10px;letter-spacing:.09em;padding:9px 11px;
+  cursor:pointer;transition:all .25s;text-align:left;line-height:1.55;
+  font-family:'Noto Sans KR',sans-serif;position:relative;overflow:hidden;}
+.ch-btn::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .25s;
+  background:linear-gradient(90deg,rgba(61,79,160,.14),transparent);}
+.ch-btn:hover::before{opacity:1;}
+.ch-btn:hover{color:var(--white);}
+.ch-btn .ct{display:block;font-size:9px;letter-spacing:.15em;margin-bottom:3px;font-weight:700;}
+.ch-btn.direct:hover{border-color:rgba(232,184,75,.4);}.ch-btn.direct .ct{color:var(--amber);}
+.ch-btn.round:hover{border-color:rgba(110,198,224,.4);}.ch-btn.round .ct{color:var(--cyan);}
+.ch-btn.emotion:hover{border-color:rgba(74,53,112,.5);}.ch-btn.emotion .ct{color:#9c6bc0;}
+.ch-btn.silence:hover{border-color:rgba(255,255,255,.2);}.ch-btn.silence .ct{color:var(--text-dim);}
+
+/* ── 이벤트 오버레이 ── */
+#event-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:200;
+  display:none;flex-direction:column;align-items:center;justify-content:center;}
+#event-box{background:rgba(14,17,26,.97);border:1px solid rgba(255,255,255,.14);
+  width:min(400px,88vw);padding:26px 26px 22px;box-shadow:0 0 60px rgba(0,0,0,.9);}
+#event-box h3{font-family:'Noto Serif KR',serif;font-size:clamp(14px,2vw,17px);
+  color:var(--white);margin-bottom:10px;letter-spacing:.1em;}
+#event-box p{font-size:12px;line-height:1.95;color:var(--text-dim);margin-bottom:16px;white-space:pre-line;}
+.ev-btns{display:flex;gap:9px;flex-wrap:wrap;}
+.ev-btn{flex:1;min-width:90px;padding:9px;font-size:11px;letter-spacing:.12em;
+  cursor:pointer;transition:all .3s;font-family:'Noto Sans KR',sans-serif;}
+.ev-btn.yes{background:rgba(61,79,160,.25);border:1px solid var(--indigo);color:var(--cyan);}
+.ev-btn.yes:hover{background:rgba(61,79,160,.45);}
+.ev-btn.no{background:transparent;border:1px solid rgba(255,255,255,.14);color:var(--text-dim);}
+.ev-btn.no:hover{border-color:rgba(255,255,255,.3);color:var(--white);}
+.ev-btn.danger{background:rgba(192,57,43,.2);border:1px solid var(--red);color:var(--red-bright);}
+.ev-btn.danger:hover{background:rgba(192,57,43,.35);}
+
+/* ── 추리 보드 ── */
+#note-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.87);z-index:300;
+  flex-direction:column;align-items:center;justify-content:center;}
+#note-inner{background:rgba(14,17,26,.97);border:1px solid rgba(255,255,255,.13);
+  width:min(580px,92vw);max-height:80vh;overflow-y:auto;padding:22px;}
+.note-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.note-hdr h3{font-family:'Noto Serif KR',serif;font-size:17px;color:var(--white);letter-spacing:.15em;}
+.note-close{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text-dim);
+  padding:5px 12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:11px;}
+.clue-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);
+  border-left:3px solid var(--indigo);padding:11px 14px;margin-bottom:9px;}
+.clue-card .c-icon-name{font-size:13px;color:var(--white);letter-spacing:.08em;margin-bottom:4px;}
+.clue-card .c-desc{font-size:11px;color:var(--text-dim);line-height:1.75;}
+#no-clues{text-align:center;color:var(--text-dim);font-size:13px;padding:28px;display:none;}
+#ai-deduction{background:rgba(74,53,112,.13);border:1px solid rgba(74,53,112,.38);padding:13px 15px;margin-top:10px;display:none;}
+#ai-deduction p{font-size:12px;color:#c0a0f0;line-height:1.9;margin-bottom:10px;}
+#ai-deduction button{width:100%;background:rgba(74,53,112,.3);border:1px solid #4a3570;
+  color:#c0a0f0;padding:8px;cursor:pointer;font-size:11px;letter-spacing:.12em;font-family:'Noto Sans KR',sans-serif;}
+
+/* ── 결과 ── */
+#s-result{background:var(--ink);}
+#result-box{text-align:center;max-width:480px;padding:40px;}
+#result-icon{font-size:52px;margin-bottom:18px;}
+#result-title{font-family:'Noto Serif KR',serif;font-size:clamp(18px,3vw,28px);
+  color:var(--white);letter-spacing:.15em;margin-bottom:12px;}
+#result-desc{font-size:clamp(12px,1.6vw,14px);color:var(--text-dim);line-height:2.1;
+  margin-bottom:28px;white-space:pre-line;}
+#result-btn{background:transparent;border:1px solid rgba(255,255,255,.28);
+  color:var(--text);font-size:12px;letter-spacing:.2em;padding:11px 34px;
+  cursor:pointer;transition:all .3s;font-family:'Noto Sans KR',sans-serif;}
+#result-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* ── 효과 ── */
+#alert-flash{position:fixed;inset:0;pointer-events:none;z-index:100;opacity:0;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(192,57,43,.22) 100%);
+  transition:opacity .1s;}
+#alert-flash.show{opacity:1;}
+#distort-overlay{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:0;
+  background:repeating-linear-gradient(0deg,rgba(192,57,43,.025) 0px,rgba(192,57,43,.025) 1px,transparent 1px,transparent 4px);
+  transition:opacity .5s;}
+#distort-overlay.active{opacity:1;}
+#transition-veil{position:fixed;inset:0;background:#000;z-index:500;
+  opacity:0;pointer-events:none;transition:opacity .45s;}
+#transition-veil.fade-in{opacity:1;pointer-events:all;}
+::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+
+<div id="noise"></div>
+<div id="alert-flash"></div>
+<div id="distort-overlay"></div>
+<div id="transition-veil"></div>
+
+<div id="cctv-ui">
+  <div class="cctv-corner tl"></div><div class="cctv-corner tr"></div>
+  <div class="cctv-corner bl"></div><div class="cctv-corner br"></div>
+  <div class="cctv-rec">REC</div>
+  <div class="cctv-label">CH.04 — 회색리 외곽</div>
+</div>
+
+<!-- S1-A 암전 -->
+<div id="s1a" class="scene active">
+  <div id="s1a-text">이웃은 항상 가까이에 있습니다.<br><span style="font-size:.65em;letter-spacing:.5em;color:#444;">— 회색리 실종 사건 기록 —</span></div>
+</div>
+
+<!-- S1-B 주택 외관 -->
+<div id="s1b" class="scene" style="background:#060810;">
+  <div id="s1b-shake">
+    <div id="house-scene">
+      <svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="skyG" cx="50%" cy="20%"><stop offset="0%" stop-color="#1a2035"/><stop offset="100%" stop-color="#060810"/></radialGradient>
+          <filter id="glow2"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect width="520" height="320" fill="url(#skyG)"/>
+        <circle cx="400" cy="52" r="28" fill="rgba(180,200,240,0.12)"/>
+        <circle cx="400" cy="52" r="16" fill="#b8c8e8" opacity=".55" filter="url(#glow2)"/>
+        <g fill="#b8c8e0" opacity=".5"><circle cx="55" cy="30" r="1.2"/><circle cx="130" cy="18" r="1"/><circle cx="210" cy="42" r="1.3"/><circle cx="330" cy="14" r="1.5"/><circle cx="455" cy="38" r="1"/><circle cx="480" cy="58" r=".8"/><circle cx="82" cy="65" r=".9"/><circle cx="175" cy="10" r="1.1"/></g>
+        <g opacity=".38" fill="#0a1808"><rect x="18" y="182" width="16" height="58"/><polygon points="8,182 26,182 17,136"/><polygon points="11,167 23,167 17,128"/><rect x="468" y="192" width="14" height="48"/><polygon points="460,192 474,192 467,150"/></g>
+        <rect x="140" y="162" width="240" height="140" fill="#0c1420" stroke="#1a2636" stroke-width="1.5"/>
+        <polygon points="118,162 260,72 402,162" fill="#080e1c" stroke="#12182a" stroke-width="1.5"/>
+        <rect x="298" y="92" width="20" height="48" fill="#070a12" stroke="#12182a" stroke-width="1"/>
+        <rect x="158" y="186" width="48" height="44" fill="#090c14" stroke="#18243a" stroke-width="1.5" rx="1"/>
+        <line x1="182" y1="186" x2="182" y2="230" stroke="#18243a" stroke-width="1"/><line x1="158" y1="208" x2="206" y2="208" stroke="#18243a" stroke-width="1"/>
+        <rect x="305" y="186" width="48" height="44" fill="#241c08" stroke="#342c14" stroke-width="1.5" rx="1" id="lit-win"/>
+        <rect x="305" y="186" width="48" height="44" fill="rgba(255,195,70,.13)" rx="1"/>
+        <line x1="329" y1="186" x2="329" y2="230" stroke="#342c14" stroke-width="1"/><line x1="305" y1="208" x2="353" y2="208" stroke="#342c14" stroke-width="1"/>
+        <ellipse id="sil" cx="329" cy="202" rx="7" ry="9" fill="rgba(0,0,0,.9)" opacity="0"/>
+        <rect x="228" y="242" width="44" height="60" fill="#070a12" stroke="#18243a" stroke-width="1.5" rx="1"/>
+        <circle cx="264" cy="272" r="2.5" fill="#24180a"/>
+        <rect x="222" y="296" width="56" height="5" fill="#0a0e16"/><rect x="216" y="299" width="68" height="4" fill="#080c14"/>
+        <rect x="60" y="292" width="400" height="14" fill="#0a0e16" stroke="#141e28" stroke-width="1"/>
+        <g fill="#0c1218" stroke="#141e28" stroke-width="1">
+          <rect x="72" y="278" width="7" height="16"/><rect x="88" y="278" width="7" height="16"/>
+          <rect x="104" y="278" width="7" height="16"/><rect x="120" y="278" width="7" height="16"/>
+          <rect x="384" y="278" width="7" height="16"/><rect x="400" y="278" width="7" height="16"/>
+          <rect x="416" y="278" width="7" height="16"/><rect x="432" y="278" width="7" height="16"/>
+        </g>
+        <rect x="0" y="302" width="520" height="18" fill="#060c08" opacity=".8"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- S1-C 이름 입력 -->
+<div id="s1c" class="scene">
+  <p id="s1c-prompt">당신의 이름을 입력하세요</p>
+  <div id="name-form">
+    <input id="name-input" type="text" maxlength="10" placeholder="이름" autocomplete="off" spellcheck="false"/>
+    <button id="name-btn">확 인</button>
+  </div>
+  <div id="ai-response"></div>
+</div>
+
+<!-- S1-D 사건 브리핑 -->
+<div id="s1d" class="scene" style="overflow-y:auto;justify-content:flex-start;padding:0;">
+  <div id="briefing-bg"></div>
+  <div id="briefing-wrap">
+    <div class="brief-header-tag">▶ 사건 브리핑 — 기밀 등급 A</div>
+    <div class="brief-header-h">회색리 연속 실종 사건</div>
+    <div class="brief-card" id="bc1">
+      <div class="label">// 실종 현황</div>
+      <p>최근 3개월간 회색리에서 주민 3명이 흔적도 없이 사라졌습니다.<br>모두 <strong style="color:var(--amber)">동네 북쪽 골목 인근</strong> 거주자였습니다.</p>
+    </div>
+    <div class="brief-card" id="bc2">
+      <div class="label">// 목격자 진술</div>
+      <p>여러 주민들이 밤마다 옆집 — <strong style="color:var(--cyan)">한윤재(35세)</strong>의 집에서<br>이상한 소리가 들린다고 증언했습니다. 경찰은 수사를 중단했습니다.</p>
+    </div>
+    <div class="brief-card" id="bc3">
+      <div class="label">// 발견된 단서</div>
+      <p>실종자 중 한 명의 가방이 한윤재 집 담장 근처에서 발견됐습니다.<br>그 안에는 당신 <strong style="color:var(--amber)" id="bc3-name">가족</strong>의 사진이 들어있었습니다.</p>
+    </div>
+    <div class="brief-card goal" id="bc4">
+      <div class="label">// 목 표</div>
+      <p id="goal-text">오늘 밤, 이웃집의 진실을 밝혀라.</p>
+    </div>
+    <button id="brief-next">시 작 →</button>
+  </div>
+</div>
+
+<!-- S1-E 컷씬 -->
+<div id="s1e" class="scene">
+  <div id="cutscene-map">
+    <svg viewBox="0 0 700 460" style="width:min(700px,96vw);height:min(460px,64vw)" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="mapSky" cx="50%" cy="0%"><stop offset="0%" stop-color="#1a2840"/><stop offset="100%" stop-color="#09090f"/></radialGradient>
+        <filter id="sg"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <rect width="700" height="460" fill="url(#mapSky)"/>
+      <circle cx="610" cy="58" r="32" fill="rgba(180,205,240,0.1)"/><circle cx="610" cy="58" r="20" fill="#b0c2e2" opacity=".45"/>
+      <g fill="#b8c8e0" opacity=".45"><circle cx="45" cy="38" r="1.4"/><circle cx="145" cy="22" r="1"/><circle cx="245" cy="50" r="1.2"/><circle cx="355" cy="18" r="1.4"/><circle cx="490" cy="38" r="1"/><circle cx="415" cy="14" r="1.3"/></g>
+      <polygon points="0,215 115,100 195,175 275,88 375,195 455,108 555,188 645,118 700,195 700,215" fill="#0c1020" opacity=".75"/>
+      <rect x="0" y="342" width="700" height="118" fill="#0c0f16"/>
+      <rect x="0" y="338" width="700" height="7" fill="#12151e"/>
+      <g fill="#0c1808" opacity=".7"><circle cx="38" cy="322" r="22"/><circle cx="60" cy="312" r="18"/><circle cx="20" cy="318" r="16"/><circle cx="662" cy="318" r="25"/><circle cx="642" cy="326" r="18"/><circle cx="682" cy="320" r="20"/></g>
+      <!-- 경찰서 -->
+      <rect x="78" y="242" width="78" height="88" fill="#0d1426" stroke="#1c2838" stroke-width="1.5"/>
+      <polygon points="68,242 117,202 166,242" fill="#09101e" stroke="#131e2e" stroke-width="1.5"/>
+      <rect x="95" y="256" width="18" height="14" fill="#182232"/><rect x="124" y="256" width="18" height="14" fill="#182232"/>
+      <rect x="101" y="290" width="12" height="40" fill="#08101a"/>
+      <text x="117" y="342" text-anchor="middle" fill="#3a5070" font-size="8" font-family="monospace" letter-spacing="1">경찰서</text>
+      <!-- 성당 -->
+      <rect x="552" y="238" width="72" height="92" fill="#110e1c" stroke="#1c1828" stroke-width="1.5"/>
+      <polygon points="542,238 588,198 622,238" fill="#0c0a18" stroke="#161224" stroke-width="1.5"/>
+      <rect x="584" y="202" width="7" height="28" fill="#1a1636"/><rect x="580" y="216" width="15" height="6" fill="#1a1636"/>
+      <rect x="560" y="252" width="16" height="20" fill="#181630" rx="3"/><rect x="596" y="256" width="13" height="13" fill="#18162c"/>
+      <text x="588" y="342" text-anchor="middle" fill="#40306a" font-size="8" font-family="monospace" letter-spacing="1">성당</text>
+      <!-- 마을회관 -->
+      <rect x="290" y="258" width="108" height="78" fill="#0e1616" stroke="#182020" stroke-width="1.5"/>
+      <polygon points="278,258 344,218 410,258" fill="#0b1214" stroke="#131c16" stroke-width="1.5"/>
+      <rect x="308" y="272" width="20" height="16" fill="#131e16"/><rect x="356" y="272" width="20" height="16" fill="#131e16"/>
+      <rect x="326" y="296" width="16" height="40" fill="#090e0c"/>
+      <text x="344" y="348" text-anchor="middle" fill="#30504a" font-size="8" font-family="monospace" letter-spacing="1">마을회관</text>
+      <!-- 편의점 -->
+      <rect x="175" y="270" width="62" height="66" fill="#12100c" stroke="#1e1614" stroke-width="1.5"/>
+      <rect x="184" y="280" width="16" height="14" fill="#1e1614"/><rect x="216" y="280" width="13" height="14" fill="#1e1614"/>
+      <rect x="187" y="306" width="28" height="30" fill="#0c0a08"/>
+      <text x="206" y="348" text-anchor="middle" fill="#503828" font-size="8" font-family="monospace" letter-spacing="1">편의점</text>
+      <!-- 폐가 -->
+      <rect x="474" y="218" width="52" height="72" fill="#090a0c" stroke="#12141a" stroke-width="1" opacity=".55"/>
+      <polygon points="464,218 500,192 526,218" fill="#07080c" stroke="#0e1014" stroke-width="1" opacity=".55"/>
+      <text x="500" y="300" text-anchor="middle" fill="#28282e" font-size="8" font-family="monospace">폐가</text>
+      <!-- 이웃집 ★ 강조 -->
+      <rect x="390" y="222" width="74" height="108" fill="#0c0e1e" stroke="#362860" stroke-width="2.5"/>
+      <polygon points="378,222 427,178 464,222" fill="#080a16" stroke="#281e48" stroke-width="2.5"/>
+      <rect x="438" y="188" width="9" height="26" fill="#060810" stroke="#10103e" stroke-width="1"/>
+      <rect x="397" y="240" width="20" height="18" fill="#181208" stroke="#261c0c" stroke-width="1"/>
+      <rect x="397" y="240" width="20" height="18" fill="rgba(255,175,35,.22)"/>
+      <rect x="433" y="240" width="20" height="18" fill="#181208" stroke="#261c0c" stroke-width="1"/>
+      <rect x="433" y="240" width="20" height="18" fill="rgba(255,175,35,.17)"/>
+      <rect x="380" y="220" width="88" height="112" fill="rgba(255,150,0,.04)" filter="url(#sg)"/>
+      <rect x="386" y="333" width="80" height="17" fill="rgba(60,40,110,.55)" stroke="#503880" stroke-width="1" rx="2"/>
+      <text x="426" y="346" text-anchor="middle" fill="#c0a0f0" font-size="8" font-family="monospace" letter-spacing="2" font-weight="bold">이웃집</text>
+      <ellipse cx="407" cy="247" rx="5" ry="7" fill="rgba(0,0,0,.92)"/>
+    </svg>
+  </div>
+  <div id="town-name-cutscene">회 색 리</div>
+  <div id="cutscene-skip" onclick="goToScene('s2')">건너뛰기 ▶</div>
+</div>
+
+<!-- S2 마을 지도 -->
+<div id="s2" class="scene">
+  <div id="s2-hud" class="hud-bar">
+    <div class="hud-item"><span class="icon">🌙</span><span>오전 <span id="hud-time" class="val">01:30</span></span></div>
+    <div class="hud-item"><span class="icon">⚠️</span><span>경계 <span id="hud-alert" class="val">0</span>%</span>
+      <div id="alert-gauge"><div id="alert-fill"></div></div></div>
+    <div class="hud-item"><span class="icon">🫀</span><span>인질 <span id="hud-hostage" class="val">100</span>%</span></div>
+    <div class="hud-item"><span class="icon">🔍</span><span>단서 <span id="hud-clues" class="val">0</span>/8</span></div>
+    <div class="hud-item ml-auto"><span class="icon">👟</span><span>행동 <span id="hud-actions" class="val">5</span></span></div>
+  </div>
+  <div id="map-main">
+    <div id="town-title-lbl">회 색 리</div>
+    <div id="map-svg-wrap">
+      <div id="map-bg-div"></div>
+      <div class="building" id="b-neighbor" onclick="enterBuilding('neighbor')" onmouseenter="showPopup(event,'neighbor')" onmouseleave="hidePopup()">
+        <svg viewBox="0 0 88 88" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <defs><filter id="nhg"><feGaussianBlur stdDeviation="3"/></filter></defs>
+          <rect x="12" y="38" width="64" height="48" fill="#0c0e1e" stroke="#362860" stroke-width="2"/>
+          <polygon points="6,38 44,10 82,38" fill="#080a16" stroke="#281e48" stroke-width="2"/>
+          <rect x="47" y="18" width="7" height="18" fill="#060810" stroke="#10103a" stroke-width="1"/>
+          <rect x="15" y="50" width="17" height="13" fill="#161006"/><rect x="15" y="50" width="17" height="13" fill="rgba(255,175,35,.28)"/>
+          <rect x="56" y="50" width="17" height="13" fill="#161006"/><rect x="56" y="50" width="17" height="13" fill="rgba(255,175,35,.22)"/>
+          <rect x="33" y="66" width="14" height="20" fill="#080c16"/>
+          <rect x="6" y="36" width="76" height="52" fill="rgba(60,38,110,.05)" filter="url(#nhg)"/>
+        </svg>
+        <div class="b-label">🏚 이웃집 (한윤재)</div>
+      </div>
+      <div class="building" id="b-police" onclick="enterBuilding('police')" onmouseenter="showPopup(event,'police')" onmouseleave="hidePopup()">
+        <svg viewBox="0 0 72 68" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="28" width="56" height="38" fill="#0c1424" stroke="#1c2838" stroke-width="1.5"/>
+          <polygon points="2,28 36,8 70,28" fill="#09101e" stroke="#131e2e" stroke-width="1.5"/>
+          <rect x="16" y="38" width="14" height="12" fill="#182232"/><rect x="42" y="38" width="14" height="12" fill="#182232"/>
+          <rect x="28" y="48" width="10" height="18" fill="#08101a"/>
+        </svg>
+        <div class="b-label">🏛 경찰서</div>
+      </div>
+      <div class="building" id="b-store" onclick="enterBuilding('store')" onmouseenter="showPopup(event,'store')" onmouseleave="hidePopup()">
+        <svg viewBox="0 0 62 58" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="16" width="54" height="40" fill="#12100c" stroke="#1e1614" stroke-width="1.5"/>
+          <rect x="0" y="13" width="62" height="6" fill="#181410"/>
+          <rect x="10" y="24" width="15" height="13" fill="#1e1614"/><rect x="36" y="24" width="13" height="13" fill="#1e1614"/>
+          <rect x="19" y="38" width="20" height="18" fill="#0c0a08"/>
+        </svg>
+        <div class="b-label">🏪 편의점</div>
+      </div>
+      <div class="building" id="b-church" onclick="enterBuilding('church')" onmouseenter="showPopup(event,'church')" onmouseleave="hidePopup()">
+        <svg viewBox="0 0 68 76" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="28" width="52" height="46" fill="#110e1c" stroke="#1c1828" stroke-width="1.5"/>
+          <polygon points="2,28 34,8 66,28" fill="#0c0a18" stroke="#161224" stroke-width="1.5"/>
+          <rect x="30" y="8" width="6" height="19" fill="#1a1636"/><rect x="27" y="17" width="14" height="5" fill="#1a1636"/>
+          <rect x="14" y="40" width="14" height="18" fill="#18162e" rx="3"/><rect x="38" y="42" width="12" height="12" fill="#18162e"/>
+        </svg>
+        <div class="b-label">⛪ 성당 (야간)</div>
+      </div>
+      <div class="building" id="b-hall" onclick="enterBuilding('hall')" onmouseenter="showPopup(event,'hall')" onmouseleave="hidePopup()">
+        <svg viewBox="0 0 78 62" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="22" width="70" height="38" fill="#0e1616" stroke="#182020" stroke-width="1.5"/>
+          <polygon points="0,22 39,4 78,22" fill="#0b1214" stroke="#131c16" stroke-width="1.5"/>
+          <rect x="12" y="30" width="15" height="13" fill="#131e16"/><rect x="51" y="30" width="15" height="13" fill="#131e16"/>
+          <rect x="30" y="40" width="14" height="20" fill="#090e0c"/>
+        </svg>
+        <div class="b-label">🏛 마을 회관</div>
+      </div>
+      <div class="building" id="b-ruins">
+        <svg viewBox="0 0 58 52" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">
+          <rect x="7" y="17" width="44" height="33" fill="#090a0c" stroke="#12141a" stroke-width="1"/>
+          <polygon points="3,17 29,4 55,17" fill="#07080c" stroke="#0e1014" stroke-width="1"/>
+          <rect x="14" y="24" width="12" height="10" fill="#0c0e12"/><rect x="30" y="26" width="10" height="8" fill="#0c0e12"/>
+        </svg>
+        <div class="b-label">🔒 폐가 (잠금)</div>
+      </div>
+      <div id="bldg-popup">
+        <h4 id="pop-title"></h4>
+        <p id="pop-desc"></p>
+        <button class="pop-btn" onclick="confirmEnter()">진 입 →</button>
+      </div>
+    </div>
+  </div>
+  <div id="map-btns">
+    <button class="map-btn" onclick="showNoteBoard()">📋 추리 보드</button>
+    <button class="map-btn primary" onclick="enterBuilding('neighbor')">🏚 이웃집 잠입</button>
+    <button class="map-btn" onclick="nextDay()">⏭ 다음 날로</button>
+  </div>
+</div>
+
+<!-- S3 이웃집 탐색 -->
+<div id="s3" class="scene">
+  <div id="s3-hud" class="hud-bar">
+    <div class="hud-item"><span class="icon">🏠</span><span style="color:var(--cyan);font-weight:700;font-size:12px;letter-spacing:.12em;">한윤재의 집</span></div>
+    <div class="hud-item"><span class="icon">⚠️</span><span>경계 <span id="s3-alert" class="val">0</span>%</span></div>
+    <div class="hud-item"><span class="icon">🫀</span><span>인질 <span id="s3-hostage" class="val">100</span>%</span></div>
+    <div class="hud-item ml-auto" style="cursor:pointer;" onclick="goToScene('s2')"><span style="font-size:11px;letter-spacing:.1em;color:var(--text-dim);">← 마을로</span></div>
+  </div>
+  <div id="floor-plan">
+    <div id="floor-wrap">
+      <div class="room" id="room-living" onclick="exploreRoom('living')"><div class="room-icon">🛋️</div><div class="room-name">거 실</div></div>
+      <div class="room" id="room-kitchen" onclick="exploreRoom('kitchen')"><div class="room-icon">🍳</div><div class="room-name">주 방</div></div>
+      <div class="room" id="room-hall" onclick="exploreRoom('hall_room')"><div class="room-icon">🚪</div><div class="room-name">복 도</div></div>
+      <div class="room" id="room-bedroom" onclick="exploreRoom('bedroom')"><div class="room-icon">🛏️</div><div class="room-name">침 실</div></div>
+      <div class="room danger" id="room-basement" onclick="exploreRoom('basement')"><div class="room-icon">🔦</div><div class="room-name">지 하 실</div></div>
+      <div class="room" id="room-storage" onclick="exploreRoom('storage')"><div class="room-icon">📦</div><div class="room-name">창 고</div></div>
+      <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" xmlns="http://www.w3.org/2000/svg">
+        <line x1="32%" y1="0" x2="32%" y2="100%" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="65%" y1="0" x2="65%" y2="100%" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="0" y1="54%" x2="32%" y2="54%" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="32%" y1="46%" x2="65%" y2="46%" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="4,4"/>
+        <line x1="65%" y1="54%" x2="100%" y2="54%" stroke="rgba(255,255,255,.07)" stroke-width="1" stroke-dasharray="4,4"/>
+      </svg>
+    </div>
+  </div>
+  <div id="s3-actions">
+    <button class="act-btn hl" onclick="talkToNeighbor()">💬 이웃에게 말 걸기</button>
+    <button class="act-btn" onclick="showNoteBoard()">📋 추리 보드</button>
+    <button class="act-btn" onclick="goToScene('s2')">← 나가기</button>
+  </div>
+</div>
+
+<!-- S4 대화 -->
+<div id="s4" class="scene">
+  <div id="dial-bg"></div>
+  <div class="bg-shelf" id="sh1"></div>
+  <div class="bg-shelf" id="sh2"></div>
+  <div class="bg-win" id="win1"></div>
+  <div class="bg-plant" id="pl1">🌿</div>
+
+  <div id="s4-hud" class="hud-bar" style="position:relative;z-index:10;flex-shrink:0;">
+    <div class="hud-item"><span class="icon">💬</span><span style="color:var(--cyan);font-weight:700;font-size:11px;letter-spacing:.14em;">대화 심리전</span></div>
+    <div class="hud-item"><span class="icon">⚠️</span><span>경계 <span id="s4-alert" class="val">0</span>%</span></div>
+    <div class="hud-item"><span id="s4-emotion-lbl" style="font-size:11px;color:var(--amber);">😌 안정</span></div>
+    <div class="hud-item ml-auto" style="cursor:pointer;" onclick="endDialogue()"><span style="font-size:11px;color:var(--text-dim);letter-spacing:.1em;">대화 종료 ✕</span></div>
+  </div>
+
+  <div id="char-area">
+    <div id="char-emotion">😌</div>
+    <svg id="char-sprite" viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="skinG" cx="50%" cy="30%"><stop offset="0%" stop-color="#c8a882"/><stop offset="100%" stop-color="#a87e58"/></radialGradient>
+        <radialGradient id="hairG" cx="50%" cy="0%"><stop offset="0%" stop-color="#28180e"/><stop offset="100%" stop-color="#180e06"/></radialGradient>
+      </defs>
+      <rect x="52" y="178" width="96" height="134" fill="#1c2332" rx="8"/>
+      <polygon points="88,178 100,208 112,178" fill="#eeead8" opacity=".9"/>
+      <polygon points="83,176 100,196 100,176" fill="#e8e4d0" opacity=".8"/>
+      <polygon points="100,176 100,196 117,176" fill="#e0dcc8" opacity=".8"/>
+      <polygon points="95,193 100,228 105,193" fill="#483058"/>
+      <rect x="28" y="183" width="26" height="78" fill="#1c2332" rx="6"/>
+      <rect x="146" y="183" width="26" height="78" fill="#1c2332" rx="6"/>
+      <ellipse cx="41" cy="267" rx="12" ry="9" fill="url(#skinG)"/>
+      <ellipse cx="159" cy="267" rx="12" ry="9" fill="url(#skinG)"/>
+      <rect x="86" y="153" width="28" height="30" fill="url(#skinG)" rx="4"/>
+      <ellipse cx="100" cy="128" rx="52" ry="58" fill="url(#skinG)"/>
+      <ellipse cx="100" cy="88" rx="52" ry="27" fill="url(#hairG)"/>
+      <rect x="48" y="86" width="19" height="54" fill="url(#hairG)" rx="9"/>
+      <rect x="133" y="86" width="19" height="54" fill="url(#hairG)" rx="9"/>
+      <rect x="53" y="73" width="94" height="18" fill="url(#hairG)" rx="5"/>
+      <path d="M70 118 Q81 113 91 116" stroke="#281606" stroke-width="2.5" fill="none" stroke-linecap="round" id="ebL"/>
+      <path d="M109 116 Q119 113 130 118" stroke="#281606" stroke-width="2.5" fill="none" stroke-linecap="round" id="ebR"/>
+      <ellipse cx="81" cy="130" rx="10" ry="9" fill="#180e06" id="eyL"/>
+      <ellipse cx="119" cy="130" rx="10" ry="9" fill="#180e06" id="eyR"/>
+      <circle cx="84" cy="127" r="3" fill="#fff" opacity=".55"/>
+      <circle cx="122" cy="127" r="3" fill="#fff" opacity=".55"/>
+      <path d="M96 140 Q100 148 104 140" stroke="#a87040" stroke-width="1.5" fill="none"/>
+      <path d="M87 156 Q100 163 113 156" stroke="#884828" stroke-width="2" fill="none" stroke-linecap="round" id="mth"/>
+    </svg>
+  </div>
+
+  <div id="speech-bubble"><div id="speech-text">...</div></div>
+
+  <div id="dialogue-bottom">
+    <div id="name-bar">
+      <span id="speaker-name">한윤재</span>
+      <span id="emotion-tag">[ 😌 안정 ]</span>
+    </div>
+    <div id="main-dial-text">...</div>
+    <div id="choices-area">
+      <button class="ch-btn direct" onclick="makeChoice('direct')"><span class="ct">직접 질문</span>지하실에서 무슨 소리가 났죠?</button>
+      <button class="ch-btn round" onclick="makeChoice('round')"><span class="ct">돌려 질문</span>요즘 동네가 많이 조용하네요.</button>
+      <button class="ch-btn emotion" onclick="makeChoice('emotion')"><span class="ct">감정 유도</span>많이 힘드시겠어요, 요즘...</button>
+      <button class="ch-btn silence" onclick="makeChoice('silence')"><span class="ct">침 묵</span>(말없이 상대방을 바라본다)</button>
+    </div>
+  </div>
+</div>
+
+<!-- 이벤트 오버레이 -->
+<div id="event-overlay">
+  <div id="event-box">
+    <h3 id="ev-title"></h3>
+    <p id="ev-desc"></p>
+    <div class="ev-btns" id="ev-btns"></div>
+  </div>
+</div>
+
+<!-- 추리 보드 -->
+<div id="note-overlay">
+  <div id="note-inner">
+    <div class="note-hdr">
+      <h3>📋 추리 보드</h3>
+      <button class="note-close" onclick="hideNoteBoard()">닫 기</button>
+    </div>
+    <div id="clue-list"></div>
+    <div id="no-clues">아직 수집된 단서가 없습니다.</div>
+    <div id="ai-deduction">
+      <p id="ai-deduction-text">🧩 AI 추리: 수집된 단서를 종합하면 지하실에 인질이 있을 가능성이 높습니다.</p>
+      <button onclick="attemptRescue(); hideNoteBoard();">🆘 지금 급습하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 -->
+<div id="s-result" class="scene">
+  <div id="result-box">
+    <div id="result-icon"></div>
+    <div id="result-title"></div>
+    <div id="result-desc"></div>
+    <button id="result-btn" onclick="restartGame()">다시 시작</button>
+  </div>
+</div>
+
+<script>
+const G = {
+  playerName:'', alertLevel:0, hostageHP:100,
+  clues:[], actionsLeft:5, day:1, dialogueTurn:0,
+  exploredRooms:new Set(), neighborMood:0,
+};
+
+const CLUE_DATA = {
+  living:   {id:'c1',name:'낡은 사진',desc:'벽의 사진 속에 실종된 주민 얼굴이 있다.',icon:'🖼️'},
+  kitchen:  {id:'c2',name:'혈흔 흔적',desc:'주방 바닥 구석에 지워진 붉은 흔적.',icon:'🔴'},
+  bedroom:  {id:'c3',name:'잠긴 서랍',desc:'침실 서랍 안에서 희미한 소리가 들린다.',icon:'🔒'},
+  storage:  {id:'c4',name:'낯선 신발',desc:'창고에 아이 사이즈 신발. 이 집에 아이는 없다.',icon:'👟'},
+  basement: {id:'c5',name:'밧줄과 의자',desc:'지하실에 밧줄과 의자, 그리고 희미한 숨소리.',icon:'🪑'},
+  hall_room:{id:'c6',name:'메모지 조각',desc:'복도 바닥 찢긴 메모: "도와주세요"',icon:'📝'},
+};
+
+const NPC_LINES = {
+  0:[{sp:'어서 오세요. 무슨 일이라도?',main:'오랜만에 이웃이 찾아왔군요. 별일은 없으시죠?'},{sp:'조용한 동네죠.',main:'저는 조용한 곳을 좋아합니다. 당신도 그렇지 않나요?'}],
+  1:[{sp:'그건 왜 묻는 거죠?',main:'갑자기 그런 질문을 하시다니. 뭔가 오해가 있는 것 같은데.'},{sp:'궁금한 게 많으시네요.',main:'이웃 사이에 그렇게 캐묻는 게 실례라는 걸 모르시나요?'}],
+  2:[{sp:'더 이상 대답하고 싶지 않군요.',main:'당신... 무언가를 찾고 있군요. 솔직히 말하는 게 낫지 않을까요?'},{sp:'내 집에서 뭘 하는 거죠?',main:'조심하세요. 이 동네는 생각보다 위험할 수 있으니까.'}],
+  3:[{sp:'당신... 뭔가 알고 있군요.',main:'눈빛이 달라졌어요. 처음부터 수상했습니다. 당장 나가세요.'},{sp:'더 있다간 후회할 겁니다.',main:'마지막 경고입니다. 모르는 게 나아요.'}],
+};
+
+const CHOICE_RESP = {
+  direct:[{sp:'...그 소리요? 모르겠는데요.',alert:16,clue:'지하실 소리에 대해 언급을 회피했다.'},{sp:'왜 그런 것까지 알아야 하죠?',alert:19,clue:null}],
+  round: [{sp:'그렇죠, 요즘은 좀 그래요.',alert:5,clue:'사람들 실종 전 동네가 조용해졌다 인정.'},{sp:'원래 조용한 곳이에요.',alert:3,clue:null}],
+  emotion:[{sp:'별로 힘들 것도 없어요.',alert:-5,clue:null},{sp:'...혼자 사는 게 편하니까요.',alert:8,clue:'혼자 산다 했지만 집에서 소리가 났다.'}],
+  silence:[{sp:'...왜 그렇게 쳐다보는 거죠?',alert:-5,clue:null},{sp:'할 말이 없으면 가세요.',alert:-3,clue:null}],
+};
+
+const BLDG_INFO = {
+  neighbor:{name:'🏚 이웃집 (한윤재)',desc:'수상한 이웃 한윤재의 집. 모든 사건이 시작된 곳.'},
+  police:  {name:'🏛 경찰서',desc:'실종 사건 파일 열람 가능. 경찰은 비협조적이다.'},
+  store:   {name:'🏪 편의점',desc:'소모품 구매, 주민들과 이야기할 수 있다.'},
+  church:  {name:'⛪ 성당',desc:'야간에만 열린다. 숨겨진 단서가 있다고 한다.'},
+  hall:    {name:'🏛 마을 회관',desc:'실종자 가족 NPC. 목격 증언을 수집할 수 있다.'},
+};
+
+const ROOM_EV = {
+  living:   {title:'거실 탐색',desc:'낡은 사진들이 벽에 가득 걸려 있습니다. 실종된 주민의 얼굴이 보입니다.',alert:0},
+  kitchen:  {title:'주방 탐색',desc:'바닥 구석에 뭔가 닦아낸 흔적이 있습니다. 빛에 비추니 붉은 기운이...',alert:6},
+  bedroom:  {title:'침실 탐색',desc:'서랍이 잠겨 있습니다. 안에서 희미한 소리가 들리는 것 같습니다.',alert:5},
+  storage:  {title:'창고 탐색',desc:'창고 구석에 아이 신발이 숨겨져 있습니다. 이 집에 아이는 없는데...',alert:8},
+  basement: {title:'⚠️ 지하실 탐색',desc:'계단을 내려가자 서늘한 공기와 함께\n밧줄에 묶인 의자가 보입니다.\n그리고... 희미한 숨소리.',alert:16},
+  hall_room:{title:'복도 탐색',desc:'복도 바닥에 찢긴 메모지 조각이 있습니다.\n"도와주세요"라고 적혀 있습니다.',alert:10},
+};
+
+let _currentBldg = null;
+
+function goToScene(id){
+  const v = document.getElementById('transition-veil');
+  v.classList.add('fade-in');
+  setTimeout(()=>{
+    document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
+    const el = document.getElementById(id); if(el) el.classList.add('active');
+    syncHUD();
+    setTimeout(()=>v.classList.remove('fade-in'),380);
+  },360);
+}
+
+function syncHUD(){
+  const a = G.alertLevel;
+  ['hud-alert','s3-alert','s4-alert'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=a; });
+  const hh=document.getElementById('hud-hostage'); if(hh) hh.textContent=G.hostageHP;
+  const hc=document.getElementById('hud-clues'); if(hc) hc.textContent=G.clues.length;
+  const ha=document.getElementById('hud-actions'); if(ha) ha.textContent=G.actionsLeft;
+  const s3h=document.getElementById('s3-hostage'); if(s3h) s3h.textContent=G.hostageHP;
+  const f=document.getElementById('alert-fill');
+  if(f){ f.style.width=a+'%'; f.style.background=a<40?'#27ae60':a<70?'#e67e22':'#c0392b'; }
+  document.getElementById('distort-overlay').classList.toggle('active',a>=75);
+}
+
+// ── 자동 진행 ──
+window.addEventListener('load',()=>{
+  setTimeout(()=>goToScene('s1b'),4200);
+  setTimeout(()=>{
+    document.getElementById('s1b-shake').classList.add('do-shake');
+    const c=document.getElementById('cctv-ui'); c.classList.add('show');
+    setTimeout(()=>{ c.classList.remove('show'); document.getElementById('s1b-shake').classList.remove('do-shake'); },900);
+  },6600);
+  setTimeout(()=>goToScene('s1c'),9600);
+});
+
+document.getElementById('name-btn').onclick=submitName;
+document.getElementById('name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') submitName(); });
+
+function submitName(){
+  const n=document.getElementById('name-input').value.trim(); if(!n) return;
+  G.playerName=n;
+  const r=document.getElementById('ai-response');
+  r.textContent=`...드디어 왔네, ${n}.`; r.classList.add('show');
+  document.getElementById('bc3-name').textContent=n+'의';
+  document.getElementById('goal-text').textContent=`오늘 밤, 이웃집의 진실을 밝혀라, ${n}.`;
+  setTimeout(()=>{ goToScene('s1d'); setTimeout(startBriefing,500); },2300);
+}
+
+function startBriefing(){
+  ['bc1','bc2','bc3','bc4'].forEach((id,i)=>setTimeout(()=>{ const e=document.getElementById(id); if(e) e.classList.add('visible'); },i*420+200));
+}
+
+document.getElementById('brief-next').onclick=()=>{
+  goToScene('s1e');
+  setTimeout(()=>goToScene('s2'),3300);
+};
+
+// ── 팝업 ──
+function showPopup(e,key){
+  const info=BLDG_INFO[key]; if(!info) return;
+  document.getElementById('pop-title').textContent=info.name;
+  document.getElementById('pop-desc').textContent=info.desc;
+  _currentBldg=key;
+  const pop=document.getElementById('bldg-popup');
+  const wr=document.getElementById('map-svg-wrap').getBoundingClientRect();
+  const br=e.currentTarget.getBoundingClientRect();
+  let left=br.left-wr.left+br.width/2-98, top=br.top-wr.top-128;
+  left=Math.max(0,Math.min(left,wr.width-206)); top=Math.max(0,top);
+  pop.style.left=left+'px'; pop.style.top=top+'px'; pop.style.display='block';
+}
+function hidePopup(){ document.getElementById('bldg-popup').style.display='none'; }
+function confirmEnter(){ hidePopup(); if(_currentBldg) enterBuilding(_currentBldg); }
+
+// ── 건물 진입 ──
+function enterBuilding(key){
+  hidePopup();
+  if(G.actionsLeft<=0){ showEvent('행동 소진','오늘은 더 이상 움직일 수 없습니다.',[{label:'확인',cls:'no',fn:'hideEvent()'}]); return; }
+  G.actionsLeft--;
+  if(key==='neighbor'){ goToScene('s3'); syncHUD(); return; }
+  const responses={
+    police:['경찰서','"실종 3건 모두 새벽 2~4시 목격 신고."','경찰 파일','실종 3건 모두 새벽 2~4시 목격 신고. 동일 패턴이다.'],
+    store: ['편의점','"새벽마다 이웃집 지하실 불이 켜져 있더라고요." — 편의점 주인','편의점 증언','새벽마다 이웃집 지하실 불이 켜진다는 목격 증언.'],
+    church:['성당','제단 뒤 메모: "도와주세요... 회색리 북쪽 집 지하..."','성당 메모','회색리 북쪽 집 지하에 누군가 갇혀 있다는 메모.'],
+    hall:  ['마을 회관','"우리 아이 실종 전날 밤, 옆집에서 이상한 소리가 났다고 했어요." — 실종자 가족','목격자 진술','실종 전날 밤 이웃집에서 이상한 소리가 났다는 가족 증언.'],
+  };
+  const r=responses[key]; if(!r) return;
+  showEvent(r[0],r[1],[
+    {label:'단서 획득 🔍',cls:'yes',fn:`addExtClue('${r[2]}','${r[3]}'); hideEvent();`},
+    {label:'닫기',cls:'no',fn:'hideEvent()'},
+  ]);
+  syncHUD();
+}
+
+function addExtClue(name,desc){
+  if(!G.clues.find(c=>c.name===name)) G.clues.push({id:'ext'+Date.now(),name,desc,icon:'📄'});
+  syncHUD();
+}
+
+// ── 방 탐색 ──
+function exploreRoom(key){
+  const ev=ROOM_EV[key]; if(!ev) return;
+  if(G.exploredRooms.has(key)){
+    showEvent(ev.title,'이미 탐색한 구역입니다.',[{label:'닫기',cls:'no',fn:'hideEvent()'}]); return;
+  }
+  G.exploredRooms.add(key);
+  document.getElementById('room-'+key.replace('_room','').replace('hall_room','hall')).classList.add('explored');
+  // 실제 방 ID 매핑
+  const roomIdMap={living:'room-living',kitchen:'room-kitchen',hall_room:'room-hall',bedroom:'room-bedroom',basement:'room-basement',storage:'room-storage'};
+  const roomEl=document.getElementById(roomIdMap[key]); if(roomEl) roomEl.classList.add('explored');
+
+  G.alertLevel=Math.min(100,G.alertLevel+ev.alert);
+  const clue=CLUE_DATA[key];
+  const btns=[];
+  if(clue&&!G.clues.find(c=>c.id===clue.id))
+    btns.push({label:'단서 수집 🔍',cls:'yes',fn:`collectClue('${key}'); hideEvent();`});
+  if(key==='basement'){
+    G.hostageHP=Math.max(0,G.hostageHP-18);
+    btns.unshift({label:'🆘 인질 구출 시도',cls:'danger',fn:'attemptRescue()'});
+  }
+  btns.push({label:'닫기',cls:'no',fn:'hideEvent()'});
+  showEvent(ev.title,ev.desc,btns);
+  syncHUD(); flashAlert();
+  if(G.alertLevel>=100) setTimeout(triggerGameOver,1100);
+}
+
+function collectClue(key){
+  const c=CLUE_DATA[key];
+  if(c&&!G.clues.find(x=>x.id===c.id)){ G.clues.push({...c}); syncHUD(); }
+}
+
+function attemptRescue(){
+  hideEvent();
+  if(G.clues.length>=3)
+    showResult('🎉','노멀 엔딩: 인질 구출 성공!',`${G.playerName}은(는) 충분한 단서를 바탕으로\n인질을 구출하고 한윤재를 신고했습니다.\n\n수집 단서: ${G.clues.length}개`);
+  else
+    showResult('😰','배드 엔딩: 증거 부족',`단서가 부족합니다.\n경찰은 믿지 않았고, 인질은 이동됐습니다.\n\n(단서를 3개 이상 모아야 합니다. 현재: ${G.clues.length}개)`);
+}
+
+// ── 대화 ──
+function talkToNeighbor(){ G.dialogueTurn=0; startDialogue(); goToScene('s4'); }
+
+function startDialogue(){
+  const lines=NPC_LINES[G.neighborMood]||NPC_LINES[0];
+  const line=lines[G.dialogueTurn%lines.length];
+  document.getElementById('speech-text').textContent=line.sp;
+  document.getElementById('main-dial-text').textContent=line.main;
+  updateEmotionUI();
+}
+
+function updateEmotionUI(){
+  const m=G.neighborMood;
+  const MOODS=['😌 안정','🤔 의심','⚠️ 경계','😡 적대'];
+  const COLS=['var(--cyan)','var(--amber)','#e67e22','var(--red-bright)'];
+  const EMOJ=['😌','🤔','⚠️','😡'];
+  document.getElementById('s4-emotion-lbl').textContent=MOODS[m];
+  document.getElementById('s4-emotion-lbl').style.color=COLS[m];
+  document.getElementById('emotion-tag').textContent=`[ ${MOODS[m]} ]`;
+  document.getElementById('char-emotion').textContent=EMOJ[m];
+  document.getElementById('s4-alert').textContent=G.alertLevel;
+  const sp=document.getElementById('char-sprite');
+  sp.className=m>=3?'angry':m>=2?'tense':'';
+  const mth=document.getElementById('mth'),ebL=document.getElementById('ebL'),ebR=document.getElementById('ebR'),eyL=document.getElementById('eyL'),eyR=document.getElementById('eyR');
+  if(m===0){ mth.setAttribute('d','M87 156 Q100 163 113 156'); ebL.setAttribute('d','M70 118 Q81 113 91 116'); ebR.setAttribute('d','M109 116 Q119 113 130 118'); eyL.setAttribute('ry','9'); eyR.setAttribute('ry','9'); }
+  else if(m===1){ mth.setAttribute('d','M89 158 Q100 160 111 158'); ebL.setAttribute('d','M70 116 Q81 116 91 119'); ebR.setAttribute('d','M109 119 Q119 116 130 116'); eyL.setAttribute('ry','7'); eyR.setAttribute('ry','7'); }
+  else if(m===2){ mth.setAttribute('d','M90 160 Q100 158 110 160'); ebL.setAttribute('d','M70 119 Q81 114 91 120'); ebR.setAttribute('d','M109 120 Q119 114 130 119'); eyL.setAttribute('ry','6'); eyR.setAttribute('ry','6'); }
+  else { mth.setAttribute('d','M88 162 Q100 158 112 162'); ebL.setAttribute('d','M70 121 Q81 112 91 118'); ebR.setAttribute('d','M109 118 Q119 112 130 121'); eyL.setAttribute('ry','5'); eyR.setAttribute('ry','5'); }
+}
+
+function makeChoice(type){
+  const arr=CHOICE_RESP[type]; const r=arr[Math.floor(Math.random()*arr.length)];
+  G.alertLevel=Math.max(0,Math.min(100,G.alertLevel+r.alert));
+  G.dialogueTurn++;
+  G.neighborMood=G.alertLevel<26?0:G.alertLevel<51?1:G.alertLevel<76?2:3;
+  if(r.clue&&Math.random()<.58&&!G.clues.find(c=>c.name==='대화 단서_'+G.dialogueTurn))
+    G.clues.push({id:'d'+G.dialogueTurn,name:'대화 단서',desc:r.clue,icon:'💬'});
+  document.getElementById('speech-text').textContent=r.sp;
+  const lines=NPC_LINES[G.neighborMood]; const line=lines[G.dialogueTurn%lines.length];
+  document.getElementById('main-dial-text').textContent=line.main;
+  updateEmotionUI(); syncHUD(); flashAlert();
+  if(G.alertLevel>=100) setTimeout(forcedExit,700);
+}
+
+function flashAlert(){ const f=document.getElementById('alert-flash'); f.classList.add('show'); setTimeout(()=>f.classList.remove('show'),140); }
+function forcedExit(){
+  G.alertLevel=Math.max(85,G.alertLevel); G.hostageHP=Math.max(0,G.hostageHP-12); syncHUD();
+  showEvent('강제 퇴장','\"당장 나가세요!\" — 한윤재가 문을 닫았습니다.',[{label:'마을로',cls:'no',fn:"hideEvent(); goToScene('s2');"}]);
+}
+function endDialogue(){ goToScene('s3'); }
+
+// ── 이벤트 ──
+function showEvent(title,desc,btns){
+  document.getElementById('ev-title').textContent=title;
+  document.getElementById('ev-desc').textContent=desc;
+  const bc=document.getElementById('ev-btns'); bc.innerHTML='';
+  btns.forEach(b=>{ const btn=document.createElement('button'); btn.className='ev-btn '+b.cls; btn.textContent=b.label; btn.setAttribute('onclick',b.fn); bc.appendChild(btn); });
+  document.getElementById('event-overlay').style.display='flex';
+}
+function hideEvent(){ document.getElementById('event-overlay').style.display='none'; }
+
+// ── 추리 보드 ──
+function showNoteBoard(){
+  const list=document.getElementById('clue-list'); list.innerHTML='';
+  const none=document.getElementById('no-clues');
+  const ded=document.getElementById('ai-deduction');
+  if(G.clues.length===0){ none.style.display='block'; ded.style.display='none'; }
+  else {
+    none.style.display='none';
+    G.clues.forEach(c=>{ const d=document.createElement('div'); d.className='clue-card'; d.innerHTML=`<div class="c-icon-name">${c.icon} ${c.name}</div><div class="c-desc">${c.desc}</div>`; list.appendChild(d); });
+    if(G.clues.length>=4){ ded.style.display='block'; document.getElementById('ai-deduction-text').textContent=`🧩 AI 추리 (단서 ${G.clues.length}개): 지하실에 인질이 있을 가능성이 높습니다. 지금 급습하거나 경찰에 신고할 수 있습니다.`; }
+    else { ded.style.display='none'; }
+  }
+  document.getElementById('note-overlay').style.display='flex';
+}
+function hideNoteBoard(){ document.getElementById('note-overlay').style.display='none'; }
+
+// ── 다음 날 ──
+function nextDay(){
+  G.day++; G.actionsLeft=5; G.alertLevel=Math.max(0,G.alertLevel-15); G.hostageHP=Math.max(0,G.hostageHP-10);
+  const times=['01:30','02:15','00:45','03:00','01:00']; document.getElementById('hud-time').textContent=times[G.day%times.length];
+  syncHUD();
+  if(G.hostageHP<=0) showResult('💀','배드 엔딩: 인질 사망','너무 오랜 시간이 지났습니다.\n인질은 이미...');
+  else showEvent(`${G.day}일째 새벽`,`행동 횟수가 회복됐습니다.\n인질 생존율: ${G.hostageHP}%`,[{label:'계속',cls:'yes',fn:'hideEvent()'}]);
+}
+
+// ── 게임 오버 / 결과 ──
+function triggerGameOver(){ showResult('🚨','배드 엔딩: 발각됨',`${G.playerName||'당신'}은(는) 한윤재에게 발각되었습니다.\n이제 당신도 이 집의 비밀이 되었습니다.`); }
+function showResult(icon,title,desc){ document.getElementById('result-icon').textContent=icon; document.getElementById('result-title').textContent=title; document.getElementById('result-desc').textContent=desc; goToScene('s-result'); }
+
+function restartGame(){
+  Object.assign(G,{playerName:'',alertLevel:0,hostageHP:100,clues:[],actionsLeft:5,day:1,dialogueTurn:0,exploredRooms:new Set(),neighborMood:0});
+  const r=document.getElementById('ai-response'); r.textContent=''; r.classList.remove('show');
+  document.getElementById('name-input').value='';
+  ['bc1','bc2','bc3','bc4'].forEach(id=>{ const e=document.getElementById(id); if(e) e.classList.remove('visible'); });
+  document.querySelectorAll('.room').forEach(el=>el.classList.remove('explored'));
+  syncHUD();
+  goToScene('s1a');
+  const t=document.getElementById('s1a-text'); t.style.animation='none'; void t.offsetWidth; t.style.animation='fadeUp 2.5s ease 1.2s forwards';
+  setTimeout(()=>goToScene('s1b'),4200);
+  setTimeout(()=>{ document.getElementById('s1b-shake').classList.add('do-shake'); const c=document.getElementById('cctv-ui'); c.classList.add('show'); setTimeout(()=>{ c.classList.remove('show'); document.getElementById('s1b-shake').classList.remove('do-shake'); },900); },6600);
+  setTimeout(()=>goToScene('s1c'),9600);
+}
+</script>
+</body>
+</html>
