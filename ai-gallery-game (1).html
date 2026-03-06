@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>🖼️ AI 갤러리 임포스터</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;background:#080818;font-family:'Georgia',serif;color:#fff;overflow-x:hidden;}
+  #app{max-width:430px;margin:0 auto;min-height:100vh;position:relative;}
+  .screen{display:none;min-height:100vh;flex-direction:column;}
+  .screen.active{display:flex;}
+
+  /* ── Buttons ── */
+  .btn{border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;font-family:monospace;letter-spacing:1px;transition:all .2s;width:100%;}
+  .btn-gold{background:#FFD700;color:#080818;}
+  .btn-gold:hover{background:#ffe033;box-shadow:0 0 25px rgba(255,215,0,.5);}
+  .btn-ghost{background:rgba(255,215,0,.12);color:#FFD700;border:2px solid #FFD700;}
+  .btn-ghost:hover{background:#FFD700;color:#080818;}
+  .btn-green{background:#6BCB77;color:#080818;box-shadow:0 4px 18px rgba(107,203,119,.3);}
+  .btn-red{background:#FF6B6B;color:#fff;}
+  .btn-dim{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.12);}
+  .btn:disabled{background:rgba(255,255,255,.08);color:rgba(255,255,255,.28);cursor:not-allowed;box-shadow:none;}
+
+  /* ── Inputs ── */
+  input,textarea{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 12px;color:#fff;font-size:13px;outline:none;font-family:monospace;width:100%;}
+  input::placeholder,textarea::placeholder{color:rgba(255,255,255,.35);}
+
+  /* ── Headers ── */
+  .screen-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;}
+  .label-small{font-size:10px;color:rgba(255,255,255,.32);letter-spacing:2px;font-family:monospace;}
+  .phase-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.08);}
+  .tab{flex:1;padding:9px;background:transparent;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,.38);cursor:pointer;font-size:11px;font-family:inherit;}
+  .tab.active{background:rgba(255,215,0,.07);border-bottom:2px solid #FFD700;color:#FFD700;}
+
+  /* ── Timer bar ── */
+  .timer-wrap{display:flex;align-items:center;gap:6px;}
+  .timer-bar{width:80px;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;}
+  .timer-fill{height:100%;background:#6BCB77;transition:width 1s linear,background .3s;}
+  .timer-num{font-family:monospace;font-size:15px;font-weight:700;min-width:26px;color:#fff;}
+  .timer-num.danger{color:#FF6B6B;animation:pulse .5s infinite;}
+
+  /* ── Canvas toolbar ── */
+  .toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .tool-btn{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;color:#fff;cursor:pointer;font-size:13px;}
+  .tool-btn.active-brush{background:rgba(255,215,0,.2);border-color:#FFD700;color:#FFD700;}
+  .tool-btn.active-eraser{background:rgba(255,107,107,.2);border-color:#FF6B6B;color:#FF6B6B;}
+  .palette{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+  .swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:border .15s;box-shadow:0 2px 5px rgba(0,0,0,.4);}
+  .swatch.selected{border-color:#FFD700;}
+
+  /* ── Gallery grid ── */
+  .gallery-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .gallery-card{background:#12122a;border:2px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .25s;}
+  .gallery-card:hover{transform:scale(1.02);}
+  .gallery-card.voted{border-color:#FFD700;transform:scale(1.05);box-shadow:0 0 20px rgba(255,215,0,.4);}
+  .card-img{height:110px;position:relative;background:#1a1a30;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .card-img img{width:100%;height:100%;object-fit:cover;}
+  .card-ai-desc{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);padding:3px 6px;font-size:8px;color:rgba(255,255,255,.65);font-family:monospace;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .card-info{padding:7px 10px;}
+
+  /* ── Player slots ── */
+  .player-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+  .player-slot{border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;min-height:50px;}
+  .avatar-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+
+  /* ── Chat ── */
+  .chat-list{flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:8px;}
+  .chat-msg{display:flex;gap:6px;align-items:flex-start;}
+  .chat-bubble{background:rgba(255,255,255,.07);border-radius:0 9px 9px 9px;padding:6px 11px;font-size:12px;line-height:1.5;max-width:220px;}
+  .chat-input-row{padding:10px 16px;border-top:1px solid rgba(255,255,255,.08);display:flex;gap:6px;}
+  .chat-input-row input{flex:1;}
+  .chat-send{background:#FFD700;color:#080818;border:none;border-radius:8px;padding:8px 13px;font-weight:800;cursor:pointer;font-size:15px;}
+
+  /* ── Quick tags ── */
+  .tag{background:rgba(255,215,0,.11);border:1px solid rgba(255,215,0,.28);border-radius:20px;padding:3px 10px;color:#FFD700;font-size:10px;cursor:pointer;font-family:monospace;}
+
+  /* ── Result cards ── */
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .result-card{border-radius:11px;overflow:hidden;transition:opacity .5s,transform .5s;}
+
+  /* ── Animations ── */
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fl0{from{transform:rotate(3deg) translateY(0)}to{transform:rotate(3deg) translateY(-12px)}}
+  @keyframes fl1{from{transform:rotate(-5deg) translateY(0)}to{transform:rotate(-5deg) translateY(-9px)}}
+  @keyframes fl2{from{transform:rotate(7deg) translateY(0)}to{transform:rotate(7deg) translateY(-15px)}}
+  @keyframes cardFlip{from{transform:rotateY(90deg);opacity:0}to{transform:rotateY(0);opacity:1}}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+  /* ── Curtain BG ── */
+  .curtain-left{position:absolute;top:0;left:0;width:22%;height:100%;background:linear-gradient(90deg,#5a0a0a,#8B1515 60%,transparent);opacity:.88;pointer-events:none;}
+  .curtain-right{position:absolute;top:0;right:0;width:22%;height:100%;background:linear-gradient(270deg,#5a0a0a,#8B1515 60%,transparent);opacity:.88;pointer-events:none;}
+  .spotlight{position:absolute;top:0;left:50%;transform:translateX(-50%);width:260px;height:360px;background:radial-gradient(ellipse at top,rgba(255,220,100,.13),transparent 70%);pointer-events:none;}
+
+  /* ── Vote cards ── */
+  .vote-player{background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:all .2s;color:#fff;width:100%;margin-bottom:8px;text-align:left;}
+  .vote-player:hover{background:rgba(255,255,255,.07);}
+
+  /* ── Verdict box ── */
+  .verdict{margin:14px 16px;padding:16px;border-radius:15px;text-align:center;animation:fadeUp .5s ease;}
+
+  /* ── Scrollable content ── */
+  .scroll-content{flex:1;overflow-y:auto;padding:12px 16px;}
+
+  /* ── Canvas wrapper ── */
+  .canvas-wrap{border-radius:14px;overflow:hidden;border:2px solid rgba(255,215,0,.35);box-shadow:0 0 30px rgba(0,0,0,.6);position:relative;touch-action:none;background:#111;}
+  #draw-canvas{display:block;width:100%;cursor:crosshair;touch-action:none;}
+  .canvas-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);border-radius:6px;padding:2px 8px;font-size:10px;color:#FFD700;font-family:monospace;pointer-events:none;}
+
+  /* ── Style bar ── */
+  .style-bar{padding:8px 16px 6px;display:flex;gap:5px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.06);}
+  .style-btn{flex-shrink:0;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 9px;color:rgba(255,255,255,.48);cursor:pointer;font-family:inherit;font-size:10px;display:flex;align-items:center;gap:3px;}
+  .style-btn.active{background:rgba(255,215,0,.18);border-color:#FFD700;color:#FFD700;}
+
+  /* round badge */
+  #round-badge{position:fixed;top:10px;right:12px;z-index:999;background:rgba(0,0,0,.72);border:1px solid rgba(255,215,0,.28);border-radius:20px;padding:2px 9px;color:#FFD700;font-size:9px;font-family:monospace;display:none;}
+
+  /* AI desc panel */
+  .ai-panel{background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:9px;}
+  .ai-result{background:rgba(255,255,255,.07);border-radius:10px;padding:9px 11px;font-size:11px;color:rgba(255,255,255,.82);line-height:1.7;border-left:3px solid #FFD700;animation:fadeUp .4s ease;}
+
+  /* thumb strip */
+  .thumb-strip{padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:7px;overflow-x:auto;}
+  .thumb{flex-shrink:0;width:52px;height:52px;border-radius:7px;overflow:hidden;}
+
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,215,0,.25);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ S0 TITLE ══ -->
+<section class="screen active" id="s-title" style="align-items:center;justify-content:center;position:relative;overflow:hidden;background:#080818;">
+  <div class="curtain-left"></div>
+  <div class="curtain-right"></div>
+  <div class="spotlight"></div>
+  <!-- floating frames -->
+  <div style="position:absolute;width:55px;height:72px;background:#0d1020;border:2px solid rgba(255,215,0,.12);border-radius:3px;top:12%;left:3%;transform:rotate(3deg);animation:fl0 3s ease-in-out infinite alternate;opacity:.5;"></div>
+  <div style="position:absolute;width:72px;height:85px;background:#0d1020;border:2px solid rgba(255,215,0,.1);border-radius:3px;top:26%;right:5%;transform:rotate(-5deg);animation:fl1 3.6s ease-in-out infinite alternate;opacity:.45;"></div>
+  <div style="position:absolute;width:60px;height:78px;background:#0d1020;border:2px solid rgba(255,215,0,.1);border-radius:3px;top:55%;left:6%;transform:rotate(7deg);animation:fl2 4.2s ease-in-out infinite alternate;opacity:.4;"></div>
+  <div style="position:absolute;width:80px;height:95px;background:#0d1020;border:2px solid rgba(255,215,0,.09);border-radius:3px;top:68%;right:3%;transform:rotate(-4deg);animation:fl0 5s ease-in-out infinite alternate;opacity:.35;"></div>
+
+  <div style="text-align:center;z-index:10;padding:0 24px;">
+    <div style="font-size:54px;margin-bottom:6px;filter:drop-shadow(0 0 20px rgba(255,215,0,.5));">🖼️</div>
+    <h1 style="font-size:28px;font-weight:900;color:#FFD700;margin:0 0 2px;text-shadow:0 0 40px rgba(255,215,0,.6);letter-spacing:2px;">AI 갤러리</h1>
+    <h2 style="font-size:12px;color:rgba(255,215,0,.5);margin:0 0 6px;letter-spacing:5px;font-weight:400;font-family:monospace;">GALLERY IMPOSTOR</h2>
+    <p style="color:rgba(255,255,255,.38);font-size:12px;margin:0 0 34px;line-height:1.9;">직접 그리고, AI에게 맡기고<br>숨어든 AI 화가를 찾아라</p>
+    <button class="btn btn-ghost" style="width:auto;padding:13px 48px;" onclick="showScreen('s-lobby')">🎨 게임 시작</button>
+    <div style="margin-top:12px;color:rgba(255,255,255,.22);font-size:10px;">3~8명 · 소셜 디덕션 · 파티게임</div>
+  </div>
+</section>
+
+<!-- ══ S1 LOBBY ══ -->
+<section class="screen" id="s-lobby" style="background:#080818;">
+  <div style="background:linear-gradient(180deg,#130808,#080818);padding:18px 20px 12px;border-bottom:1px solid rgba(255,215,0,.16);">
+    <div class="label-small">🖼️ AI GALLERY IMPOSTOR</div>
+    <h2 style="margin:3px 0 0;font-size:19px;">대기실</h2>
+    <div style="margin-top:5px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);border-radius:6px;padding:3px 11px;display:inline-block;font-family:monospace;font-size:12px;color:#FFD700;" id="room-code">ART-0000</div>
+  </div>
+  <div style="padding:14px 20px;flex:1;overflow-y:auto;">
+    <div style="font-size:11px;color:rgba(255,255,255,.38);margin-bottom:8px;">참가자 <span id="player-count">0</span>/8</div>
+    <div class="player-grid" id="player-grid"></div>
+    <div style="display:flex;gap:8px;margin-bottom:9px;">
+      <input id="name-input" placeholder="이름 입력" style="flex:1;" onkeydown="if(event.key==='Enter')addPlayer()"/>
+      <button onclick="addPlayer()" style="background:#FFD700;color:#080818;border:none;border-radius:8px;padding:9px 15px;font-weight:800;cursor:pointer;font-size:16px;">+</button>
+    </div>
+    <button class="btn btn-dim" style="margin-bottom:14px;" onclick="fillBots()">🤖 봇으로 채우기 (최소 4명)</button>
+    <button class="btn btn-gold" id="start-btn" disabled onclick="startGame()">최소 3명 필요 (0명)</button>
+  </div>
+</section>
+
+<!-- ══ S2 ROLE ══ -->
+<section class="screen" id="s-role" style="background:#080818;align-items:center;justify-content:center;padding:24px;">
+  <div class="label-small" style="margin-bottom:8px;">역할 배정</div>
+  <h2 style="font-size:19px;margin:0 0 26px;" id="role-name-title"></h2>
+  <div id="role-card" style="width:210px;height:290px;perspective:1000px;margin-bottom:26px;cursor:pointer;" onclick="flipRoleCard()">
+    <div id="role-card-inner" style="width:100%;height:100%;position:relative;transform-style:preserve-3d;transform:rotateY(0);transition:transform .85s cubic-bezier(.4,0,.2,1);">
+      <div style="position:absolute;inset:0;backface-visibility:hidden;background:linear-gradient(135deg,#1a1a3e,#2a1a4e);border:2px solid #FFD700;border-radius:16px;display:flex;align-items:center;justify-content:center;">
+        <div style="font-size:58px;opacity:.22;">🖼️</div>
+      </div>
+      <div id="role-front" style="position:absolute;inset:0;backface-visibility:hidden;transform:rotateY(180deg);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+        <div id="role-icon" style="font-size:58px;"></div>
+        <div id="role-label" style="font-size:17px;font-weight:800;"></div>
+        <div id="role-desc" style="color:rgba(255,255,255,.42);font-size:11px;text-align:center;padding:0 18px;line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+  <button class="btn" id="role-next-btn" style="display:none;width:auto;padding:12px 38px;font-size:14px;" onclick="goTheme()">확인 →</button>
+  <div style="margin-top:16px;color:rgba(255,255,255,.25);font-size:11px;">카드를 눌러 역할을 확인하세요</div>
+</section>
+
+<!-- ══ S3 THEME ══ -->
+<section class="screen" id="s-theme" style="background:#080818;align-items:center;justify-content:center;padding:24px;text-align:center;">
+  <div class="label-small" style="margin-bottom:22px;">주제 공개</div>
+  <div id="theme-label" style="font-size:11px;margin-bottom:7px;"></div>
+  <div id="theme-box" style="border-radius:20px;padding:20px 42px;margin-bottom:9px;">
+    <div id="theme-text" style="font-size:40px;font-weight:900;color:#fff;"></div>
+  </div>
+  <div id="theme-sub" style="font-size:11px;color:rgba(255,255,255,.28);"></div>
+  <div id="theme-countdown" style="margin-top:38px;width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.05);border:3px solid rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;font-family:monospace;">5</div>
+</section>
+
+<!-- ══ S4 GENERATE / DRAW ══ -->
+<section class="screen" id="s-generate" style="background:#080818;">
+  <div class="screen-header">
+    <div>
+      <div class="label-small">그림 제작</div>
+      <div id="gen-subject" style="font-size:13px;font-weight:700;"></div>
+    </div>
+    <div class="timer-wrap">
+      <div class="timer-bar"><div class="timer-fill" id="gen-timer-bar" style="width:100%;"></div></div>
+      <div class="timer-num" id="gen-timer-num">90</div>
+    </div>
+  </div>
+  <!-- Style bar -->
+  <div class="style-bar" id="style-bar"></div>
+  <!-- Tabs -->
+  <div class="phase-tabs">
+    <button class="tab active" onclick="switchGenTab('draw')" id="tab-draw">✏️ 직접 그리기</button>
+    <button class="tab" onclick="switchGenTab('ai')" id="tab-ai">✨ AI 프롬프트</button>
+  </div>
+  <div class="scroll-content" style="display:flex;flex-direction:column;gap:10px;">
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <canvas id="draw-canvas" width="720" height="480"></canvas>
+      <div class="canvas-badge" id="style-badge">🎨 수채화</div>
+    </div>
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="tool-btn active-brush" id="btn-brush" onclick="setTool('brush')">🖌️ 브러시</button>
+      <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">🧹 지우개</button>
+      <input type="range" id="brush-size" min="2" max="28" value="8" style="flex:1;min-width:50px;accent-color:#FFD700;" oninput="updateBrushSize(this.value)"/>
+      <span id="size-label" style="color:rgba(255,255,255,.45);font-size:10px;font-family:monospace;min-width:26px;">8px</span>
+      <button class="tool-btn" onclick="undoDraw()">↩️</button>
+      <button class="tool-btn" onclick="clearCanvas()">🗑️</button>
+    </div>
+    <!-- Palette -->
+    <div class="palette" id="palette"></div>
+
+    <!-- AI Panel -->
+    <div class="ai-panel" id="ai-panel" style="display:none;">
+      <div class="label-small">✨ AI 프롬프트 — Claude가 그림을 묘사합니다</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;" id="quick-tags"></div>
+      <div style="display:flex;gap:6px;">
+        <input id="ai-prompt" placeholder="키워드 입력..." onkeydown="if(event.key==='Enter')callAI()"/>
+        <button onclick="callAI()" id="ai-gen-btn" style="background:rgba(255,215,0,.9);border:none;border-radius:8px;padding:8px 13px;color:#080818;font-weight:900;cursor:pointer;font-size:12px;white-space:nowrap;">생성</button>
+      </div>
+      <div id="ai-loading" style="display:none;text-align:center;color:rgba(255,255,255,.4);font-size:11px;">⚙️ Claude가 묘사 중...</div>
+      <div id="ai-result" class="ai-result" style="display:none;"></div>
+      <div id="ai-hint" style="display:none;font-size:9px;color:rgba(255,255,255,.25);text-align:center;">↑ AI 묘사가 캔버스 배경에 워터마크로 반영됩니다.</div>
+    </div>
+
+    <!-- Draw tip -->
+    <div id="draw-tip" style="background:rgba(255,255,255,.04);border-radius:9px;padding:9px 11px;font-size:10px;color:rgba(255,255,255,.38);line-height:1.8;"></div>
+
+    <button class="btn btn-green" onclick="submitArt()">🎨 작품 제출하기</button>
+  </div>
+</section>
+
+<!-- ══ S5 GALLERY + DISCUSS + VOTE ══ -->
+<section class="screen" id="s-gallery" style="background:#080818;">
+  <div class="screen-header">
+    <div style="font-size:12px;font-weight:700;color:#FFD700;" id="gallery-theme-label">주제: ?</div>
+    <div class="timer-wrap">
+      <div class="timer-bar"><div class="timer-fill" id="gal-timer-bar" style="width:100%;"></div></div>
+      <div class="timer-num" id="gal-timer-num">30</div>
+    </div>
+  </div>
+  <div class="phase-tabs">
+    <button class="tab active" onclick="switchGalTab('gallery')" id="gtab-gallery">🖼️ 갤러리</button>
+    <button class="tab" onclick="switchGalTab('discuss')" id="gtab-discuss">💬 토론</button>
+    <button class="tab" onclick="switchGalTab('vote')" id="gtab-vote">🗳️ 투표</button>
+  </div>
+
+  <!-- Gallery pane -->
+  <div id="pane-gallery" style="flex:1;overflow-y:auto;padding:12px 16px;">
+    <div style="font-size:10px;color:rgba(255,255,255,.3);margin-bottom:9px;">그림을 눌러 크게 보세요</div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </div>
+
+  <!-- Discuss pane -->
+  <div id="pane-discuss" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+    <div class="thumb-strip" id="thumb-strip"></div>
+    <div class="chat-list" id="chat-list"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" placeholder="의견을 말해보세요..." onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button class="chat-send" onclick="sendChat()">↑</button>
+    </div>
+  </div>
+
+  <!-- Vote pane -->
+  <div id="pane-vote" style="display:none;flex:1;overflow-y:auto;padding:18px 16px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:24px;">🗳️</div>
+      <div style="font-size:15px;font-weight:700;margin-top:3px;">AI 화가는 누구인가요?</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px;">의심스러운 플레이어를 선택하세요</div>
+    </div>
+    <div id="vote-list"></div>
+    <button class="btn btn-red" id="vote-confirm-btn" style="display:none;margin-top:16px;animation:fadeUp .3s ease;" onclick="confirmVote()">🗳️ 투표 확정</button>
+  </div>
+</section>
+
+<!-- ══ S6 RESULT ══ -->
+<section class="screen" id="s-result" style="background:#080818;">
+  <div style="padding:16px;border-bottom:1px solid rgba(255,255,255,.08);text-align:center;">
+    <div class="label-small">결과 공개</div>
+    <div id="result-theme-sub" style="font-size:10px;color:rgba(255,255,255,.22);margin-top:2px;"></div>
+  </div>
+  <div id="result-verdict" class="verdict" style="display:none;"></div>
+  <div class="scroll-content">
+    <div style="font-size:10px;color:rgba(255,255,255,.32);margin-bottom:9px;letter-spacing:1px;">모든 작가 공개</div>
+    <div class="result-grid" id="result-grid"></div>
+  </div>
+  <div style="padding:0 16px 28px;margin-top:8px;">
+    <button class="btn btn-gold" id="next-round-btn" style="display:none;animation:fadeUp .5s ease;" onclick="nextRound()">🔄 다음 라운드</button>
+  </div>
+</section>
+
+<!-- ══ LIGHTBOX ══ -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;align-items:center;justify-content:center;padding:20px;" onclick="closeLightbox()">
+  <img id="lightbox-img" style="max-width:100%;max-height:80vh;border-radius:12px;border:2px solid rgba(255,215,0,.4);" src=""/>
+</div>
+
+<div id="round-badge">R1</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════
+const THEMES=[
+  {topic:"사과",hint:"과일"},{topic:"고양이",hint:"동물"},{topic:"피자",hint:"음식"},
+  {topic:"장미",hint:"꽃"},{topic:"로봇",hint:"기계"},{topic:"기타",hint:"악기"},
+  {topic:"UFO",hint:"우주 물체"},{topic:"해바라기",hint:"식물"},{topic:"초밥",hint:"음식"},
+  {topic:"공룡",hint:"동물"},
+];
+const STYLES=[
+  {id:"watercolor",label:"수채화",emoji:"🎨"},
+  {id:"pixel",label:"픽셀아트",emoji:"👾"},
+  {id:"oil",label:"유화",emoji:"🖼️"},
+  {id:"sketch",label:"스케치",emoji:"✏️"},
+  {id:"anime",label:"애니",emoji:"✨"},
+  {id:"photo",label:"사실적",emoji:"📷"},
+];
+const PCOLORS=["#FF6B6B","#FFD93D","#6BCB77","#4D96FF","#FF6FC8","#FF9A3C","#A8FF78","#78C1FF"];
+const PAVATARS=["🎨","🖌️","🖼️","🎭","🎬","🎪","🎯","🎲"];
+const BOTS=["레오나르도","비카소","모네","달리","워홀","클림트","뭉크","세잔"];
+const PALETTE_COLORS=["#ffffff","#000000","#FF6B6B","#FFD700","#6BCB77","#4D96FF","#FF6FC8","#FF9A3C","#c471ed","#a8edea","#8B6914","#555555"];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let players=[], theme=null, round=1;
+let currentTool="brush", currentColor="#ffffff", brushSz=8;
+let drawHistory=[], isDrawing=false, lastX=0, lastY=0;
+let currentArtStyle="watercolor", currentAiDesc="";
+let genTimerInt=null, galTimerInt=null, themeCountInt=null;
+let genTimeLeft=90, galTimeLeft=30, themeCountLeft=5;
+let galPhase="gallery", galPhaseTotals={gallery:30,discuss:50,vote:25};
+let selectedVoteId=null;
+let cardFlipped=false;
+
+function shuffle(a){return[...a].sort(()=>Math.random()-.5);}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════════
+//  LOBBY
+// ══════════════════════════════════════════════
+(function initLobby(){
+  document.getElementById('room-code').textContent='ART-'+Math.floor(1000+Math.random()*9000);
+  renderPlayerGrid();
+})();
+
+function renderPlayerGrid(){
+  const grid=document.getElementById('player-grid');
+  grid.innerHTML='';
+  for(let i=0;i<8;i++){
+    const p=players[i];
+    const slot=document.createElement('div');
+    slot.className='player-slot';
+    if(p){
+      slot.style.cssText=`background:${p.color}18;border:1px solid ${p.color}44;`;
+      slot.innerHTML=`<div class="avatar-circle" style="background:${p.color};">${p.avatar}</div>
+        <div><div style="font-size:12px;font-weight:700;">${p.name}</div>
+        <div style="font-size:9px;color:${p.isBot?'#FFD700':'#6BCB77'};">${p.isBot?'🤖 봇':'✅ 준비'}</div></div>`;
+    }else{
+      slot.style.cssText='background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);';
+      slot.innerHTML='<div style="color:rgba(255,255,255,.13);font-size:11px;">빈 슬롯</div>';
+    }
+    grid.appendChild(slot);
+  }
+  document.getElementById('player-count').textContent=players.length;
+  const btn=document.getElementById('start-btn');
+  if(players.length>=3){
+    btn.disabled=false;btn.className='btn btn-gold';btn.textContent='🎨 게임 시작';
+  }else{
+    btn.disabled=true;btn.className='btn';btn.style.cssText='';btn.textContent=`최소 3명 필요 (${players.length}명)`;
+  }
+}
+
+function addPlayer(){
+  if(players.length>=8)return;
+  const inp=document.getElementById('name-input');
+  const name=inp.value.trim()||`플레이어${players.length+1}`;
+  players.push({id:players.length,name,color:PCOLORS[players.length%8],avatar:PAVATARS[players.length%8],ready:false});
+  inp.value='';
+  renderPlayerGrid();
+}
+
+function fillBots(){
+  const need=Math.max(0,4-players.length);
+  for(let i=0;i<need;i++){
+    const idx=players.length;
+    players.push({id:idx,name:BOTS[idx%8],color:PCOLORS[idx%8],avatar:PAVATARS[idx%8],isBot:true,ready:true});
+  }
+  renderPlayerGrid();
+}
+
+// ══════════════════════════════════════════════
+//  GAME START
+// ══════════════════════════════════════════════
+function startGame(){
+  if(players.length<3)return;
+  const shuffled=shuffle(players);
+  players=shuffled.map((p,i)=>({...p,role:i===0?'imposter':'artist',image:null}));
+  theme=THEMES[Math.floor(Math.random()*THEMES.length)];
+  round=1;
+  document.getElementById('round-badge').textContent='R'+round;
+  document.getElementById('round-badge').style.display='block';
+  showRoleScreen();
+  showScreen('s-role');
+}
+
+// ══════════════════════════════════════════════
+//  ROLE SCREEN
+// ══════════════════════════════════════════════
+function showRoleScreen(){
+  cardFlipped=false;
+  const human=players[0];
+  const imp=human.role==='imposter';
+  document.getElementById('role-name-title').textContent=human.name+'님의 역할';
+  const front=document.getElementById('role-front');
+  front.style.background=imp?'linear-gradient(135deg,#1c0808,#2d1010)':'linear-gradient(135deg,#081c08,#102d10)';
+  front.style.border=`2px solid ${imp?'#FF6B6B':'#6BCB77'}`;
+  document.getElementById('role-icon').textContent=imp?'🤖':'🎨';
+  document.getElementById('role-label').style.color=imp?'#FF6B6B':'#6BCB77';
+  document.getElementById('role-label').textContent=imp?'AI 화가':'예술가';
+  document.getElementById('role-desc').textContent=imp?'정확한 주제 없이 그림을 그려 숨으세요':'주제를 받아 그림을 그리고 AI 화가를 찾아내세요';
+  document.getElementById('role-card-inner').style.transform='rotateY(0)';
+  document.getElementById('role-next-btn').style.display='none';
+  // auto-flip after 800ms
+  setTimeout(()=>flipRoleCard(),800);
+}
+
+function flipRoleCard(){
+  if(cardFlipped)return;
+  cardFlipped=true;
+  document.getElementById('role-card-inner').style.transform='rotateY(180deg)';
+  setTimeout(()=>{
+    document.getElementById('role-next-btn').style.display='block';
+    const imp=players[0].role==='imposter';
+    document.getElementById('role-next-btn').style.background=imp?'#FF6B6B':'#6BCB77';
+    document.getElementById('role-next-btn').style.color='#080818';
+  },600);
+}
+
+function goTheme(){
+  showThemeScreen();
+  showScreen('s-theme');
+}
+
+// ══════════════════════════════════════════════
+//  THEME SCREEN
+// ══════════════════════════════════════════════
+function showThemeScreen(){
+  clearInterval(themeCountInt);
+  const human=players[0];
+  const imp=human.role==='imposter';
+  if(imp){
+    document.getElementById('theme-label').innerHTML='<span style="color:#FF6B6B;">🤖 AI 화가 힌트</span>';
+    document.getElementById('theme-box').style.cssText='background:rgba(255,107,107,.12);border:2px solid #FF6B6B;border-radius:20px;padding:20px 42px;margin-bottom:9px;';
+    document.getElementById('theme-text').textContent=theme.hint;
+    document.getElementById('theme-sub').textContent='정확한 주제 없이 힌트만으로 그려야 합니다';
+  }else{
+    document.getElementById('theme-label').innerHTML='<span style="color:#6BCB77;">🎨 이번 라운드 주제</span>';
+    document.getElementById('theme-box').style.cssText='background:rgba(107,203,119,.12);border:2px solid #6BCB77;border-radius:20px;padding:20px 42px;margin-bottom:9px;';
+    document.getElementById('theme-text').textContent=theme.topic;
+    document.getElementById('theme-sub').textContent='이 주제로 그림을 그리세요';
+  }
+  themeCountLeft=5;
+  document.getElementById('theme-countdown').textContent=themeCountLeft;
+  themeCountInt=setInterval(()=>{
+    themeCountLeft--;
+    document.getElementById('theme-countdown').textContent=themeCountLeft;
+    if(themeCountLeft<=0){clearInterval(themeCountInt);showGenerateScreen();showScreen('s-generate');}
+  },1000);
+}
+
+// ══════════════════════════════════════════════
+//  GENERATE / DRAW SCREEN
+// ══════════════════════════════════════════════
+function showGenerateScreen(){
+  clearInterval(genTimerInt);
+  currentAiDesc='';
+  const human=players[0];
+  const imp=human.role==='imposter';
+
+  // subject label
+  document.getElementById('gen-subject').style.color=imp?'#FF6B6B':'#6BCB77';
+  document.getElementById('gen-subject').textContent=imp?`🤖 힌트: ${theme.hint}`:`🎨 주제: ${theme.topic}`;
+
+  // style bar
+  buildStyleBar();
+
+  // palette
+  buildPalette();
+
+  // quick tags
+  const tags=imp?[theme.hint,'추상적','실루엣','배경만','패턴','간접적']:[theme.topic,'클로즈업','밝은 색','미니멀','귀엽게','배경 포함'];
+  const tagWrap=document.getElementById('quick-tags');
+  tagWrap.innerHTML='';
+  tags.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='tag';btn.textContent=t;
+    btn.onclick=()=>{const inp=document.getElementById('ai-prompt');inp.value=(inp.value?inp.value+' ':'')+t;};
+    tagWrap.appendChild(btn);
+  });
+
+  // draw tip
+  document.getElementById('draw-tip').innerHTML=`💡 <b style="color:rgba(255,255,255,.58);">팁:</b> ${imp?`"${theme.hint}" 힌트만으로 그려야 합니다. 너무 정확하게 그리면 의심받아요!`:`"${theme.topic}"을(를) 표현하세요. AI 탭에서 Claude에게 묘사를 요청할 수 있어요.`}`;
+
+  // reset AI panel
+  document.getElementById('ai-result').style.display='none';
+  document.getElementById('ai-hint').style.display='none';
+  document.getElementById('ai-loading').style.display='none';
+  document.getElementById('ai-prompt').value='';
+
+  // init canvas
+  currentArtStyle='watercolor';
+  updateStyleBar();
+  initCanvas();
+
+  // default tab
+  switchGenTab('draw');
+
+  // timer
+  genTimeLeft=90;
+  updateGenTimer();
+  genTimerInt=setInterval(()=>{
+    genTimeLeft--;
+    updateGenTimer();
+    if(genTimeLeft<=0){clearInterval(genTimerInt);submitArt();}
+  },1000);
+}
+
+function buildStyleBar(){
+  const bar=document.getElementById('style-bar');
+  bar.innerHTML='';
+  STYLES.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='style-btn'+(s.id==='watercolor'?' active':'');
+    btn.id='sbtn-'+s.id;
+    btn.innerHTML=`<span>${s.emoji}</span><span>${s.label}</span>`;
+    btn.onclick=()=>{ currentArtStyle=s.id; updateStyleBar(); initCanvas(); };
+    bar.appendChild(btn);
+  });
+}
+function updateStyleBar(){
+  STYLES.forEach(s=>document.getElementById('sbtn-'+s.id)?.classList.toggle('active',s.id===currentArtStyle));
+  const sd=STYLES.find(s=>s.id===currentArtStyle);
+  document.getElementById('style-badge').textContent=`${sd.emoji} ${sd.label}`;
+}
+
+function buildPalette(){
+  const pal=document.getElementById('palette');
+  pal.innerHTML='';
+  PALETTE_COLORS.forEach(c=>{
+    const sw=document.createElement('div');sw.className='swatch';sw.style.background=c;
+    if(c===currentColor)sw.classList.add('selected');
+    sw.onclick=()=>{currentColor=c;document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('selected'));sw.classList.add('selected');};
+    pal.appendChild(sw);
+  });
+  // custom color
+  const label=document.createElement('label');
+  label.style.cssText='position:relative;cursor:pointer;';
+  label.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border:2px solid rgba(255,255,255,.3);"></div>
+    <input type="color" value="${currentColor}" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;">`;
+  label.querySelector('input').oninput=function(){currentColor=this.value;};
+  pal.appendChild(label);
+}
+
+function switchGenTab(tab){
+  document.getElementById('tab-draw').classList.toggle('active',tab==='draw');
+  document.getElementById('tab-ai').classList.toggle('active',tab==='ai');
+  document.getElementById('ai-panel').style.display=tab==='ai'?'flex':'none';
+  document.getElementById('draw-tip').style.display=tab==='draw'?'block':'none';
+  if(tab==='ai')document.getElementById('ai-panel').style.flexDirection='column';
+}
+
+function updateGenTimer(){
+  const pct=(genTimeLeft/90)*100;
+  document.getElementById('gen-timer-bar').style.width=pct+'%';
+  document.getElementById('gen-timer-bar').style.background=genTimeLeft<=10?'#FF6B6B':'#6BCB77';
+  const numEl=document.getElementById('gen-timer-num');
+  numEl.textContent=genTimeLeft;
+  numEl.className='timer-num'+(genTimeLeft<=10?' danger':'');
+}
+
+// ── Canvas ──────────────────────────────────
+const CV_COLORS={
+  watercolor:{bg:['#c9f0ed','#fde8ef'],blobs:true},
+  pixel:{bg:['#0f0c29','#0f0c29'],dots:true},
+  oil:{bg:['#2a1505','#3e2008'],strokes:true},
+  sketch:{bg:['#f7f4ef','#f7f4ef'],paper:true},
+  anime:{bg:['#12001f','#080010'],stars:true},
+  photo:{bg:['#16202e','#0c1520']},
+};
+
+function initCanvas(){
+  const canvas=document.getElementById('draw-canvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  paintBg(ctx,W,H);
+  drawHistory=[canvas.toDataURL()];
+  // attach events once
+  if(!canvas._eventsAttached){
+    canvas._eventsAttached=true;
+    canvas.addEventListener('mousedown',startDraw);
+    canvas.addEventListener('mousemove',onDraw);
+    canvas.addEventListener('mouseup',endDraw);
+    canvas.addEventListener('mouseleave',endDraw);
+    canvas.addEventListener('touchstart',e=>{e.preventDefault();startDraw(e.touches[0]);},{passive:false});
+    canvas.addEventListener('touchmove',e=>{e.preventDefault();onDraw(e.touches[0]);},{passive:false});
+    canvas.addEventListener('touchend',e=>{e.preventDefault();endDraw();},{passive:false});
+  }
+}
+
+function paintBg(ctx,W,H){
+  ctx.clearRect(0,0,W,H);
+  const cfg=CV_COLORS[currentArtStyle]||CV_COLORS.photo;
+  if(cfg.blobs){
+    const g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,cfg.bg[0]);g.addColorStop(1,cfg.bg[1]);
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    for(let i=0;i<10;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,20+Math.random()*70,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${.07+Math.random()*.18})`;ctx.fill();}
+  }else if(cfg.dots){
+    ctx.fillStyle=cfg.bg[0];ctx.fillRect(0,0,W,H);
+    for(let x=0;x<W;x+=8)for(let y=0;y<H;y+=8){if(Math.random()<.04){ctx.fillStyle=`rgba(255,255,255,${Math.random()*.3})`;ctx.fillRect(x,y,8,8);}}
+  }else if(cfg.strokes){
+    const g2=ctx.createLinearGradient(0,0,W,H);g2.addColorStop(0,cfg.bg[0]);g2.addColorStop(1,cfg.bg[1]);
+    ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
+    for(let i=0;i<35;i++){ctx.strokeStyle=`rgba(${180+Math.random()*60},${100+Math.random()*60},0,.06)`;ctx.lineWidth=2+Math.random()*4;ctx.beginPath();ctx.moveTo(Math.random()*W,Math.random()*H);ctx.bezierCurveTo(Math.random()*W,Math.random()*H,Math.random()*W,Math.random()*H,Math.random()*W,Math.random()*H);ctx.stroke();}
+  }else if(cfg.paper){
+    ctx.fillStyle=cfg.bg[0];ctx.fillRect(0,0,W,H);
+    for(let i=0;i<400;i++){ctx.strokeStyle=`rgba(60,50,40,${Math.random()*.02})`;ctx.lineWidth=Math.random()*1.2;ctx.beginPath();ctx.moveTo(Math.random()*W,Math.random()*H);ctx.lineTo(Math.random()*W,Math.random()*H);ctx.stroke();}
+  }else if(cfg.stars){
+    const g3=ctx.createLinearGradient(0,0,0,H);g3.addColorStop(0,cfg.bg[0]);g3.addColorStop(1,cfg.bg[1]);
+    ctx.fillStyle=g3;ctx.fillRect(0,0,W,H);
+    for(let i=0;i<70;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*.7})`;ctx.fillRect(Math.random()*W,Math.random()*H*.6,1+Math.random()*1.5,1+Math.random()*1.5);}
+  }else{
+    const g4=ctx.createLinearGradient(0,0,0,H);g4.addColorStop(0,cfg.bg[0]);g4.addColorStop(1,cfg.bg[1]);
+    ctx.fillStyle=g4;ctx.fillRect(0,0,W,H);
+  }
+  // AI desc watermark
+  if(currentAiDesc){
+    ctx.save();ctx.globalAlpha=.12;
+    ctx.fillStyle=currentArtStyle==='sketch'?'#222':'#fff';
+    ctx.font=`bold 18px monospace`;ctx.textAlign='center';
+    const words=currentAiDesc.replace(/\n/g,' ').split(' ');
+    let line='',lines=[];
+    for(const w of words){const t=line+w+' ';if(ctx.measureText(t).width>W-40&&line){lines.push(line.trim());line=w+' ';}else line=t;}
+    if(line.trim())lines.push(line.trim());
+    lines.slice(0,7).forEach((l,i)=>ctx.fillText(l,W/2,H/2-(lines.length*22)/2+i*22+11));
+    ctx.restore();
+  }
+}
+
+function getCanvasPos(e){
+  const canvas=document.getElementById('draw-canvas');
+  const rect=canvas.getBoundingClientRect();
+  const sx=canvas.width/rect.width,sy=canvas.height/rect.height;
+  return{x:(e.clientX-rect.left)*sx,y:(e.clientY-rect.top)*sy};
+}
+
+function startDraw(e){
+  isDrawing=true;
+  const p=getCanvasPos(e);lastX=p.x;lastY=p.y;
+}
+
+function onDraw(e){
+  if(!isDrawing)return;
+  const canvas=document.getElementById('draw-canvas');
+  const ctx=canvas.getContext('2d');
+  const p=getCanvasPos(e);
+  ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);
+  ctx.lineCap='round';ctx.lineJoin='round';
+  if(currentTool==='eraser'){
+    ctx.globalCompositeOperation='destination-out';ctx.lineWidth=brushSz*2.5;ctx.strokeStyle='rgba(0,0,0,1)';
+  }else{
+    ctx.globalCompositeOperation='source-over';
+    if(currentArtStyle==='watercolor'){ctx.strokeStyle=currentColor+'99';ctx.lineWidth=brushSz*2.2;ctx.shadowColor=currentColor;ctx.shadowBlur=12;}
+    else if(currentArtStyle==='pixel'){ctx.strokeStyle=currentColor;ctx.lineWidth=Math.ceil(brushSz/4)*4;ctx.shadowBlur=0;}
+    else if(currentArtStyle==='sketch'){ctx.strokeStyle=currentColor+'bb';ctx.lineWidth=brushSz*.55;ctx.shadowBlur=0;}
+    else if(currentArtStyle==='oil'){ctx.strokeStyle=currentColor;ctx.lineWidth=brushSz*1.8;ctx.shadowColor=currentColor;ctx.shadowBlur=6;}
+    else if(currentArtStyle==='anime'){ctx.strokeStyle=currentColor;ctx.lineWidth=brushSz;ctx.shadowColor=currentColor;ctx.shadowBlur=10;}
+    else{ctx.strokeStyle=currentColor;ctx.lineWidth=brushSz;ctx.shadowBlur=0;}
+  }
+  ctx.stroke();
+  ctx.globalCompositeOperation='source-over';ctx.shadowBlur=0;
+  lastX=p.x;lastY=p.y;
+}
+
+function endDraw(){
+  if(!isDrawing)return;
+  isDrawing=false;
+  const canvas=document.getElementById('draw-canvas');
+  drawHistory=[...drawHistory.slice(-29),canvas.toDataURL()];
+}
+
+function setTool(t){
+  currentTool=t;
+  document.getElementById('btn-brush').className='tool-btn'+(t==='brush'?' active-brush':'');
+  document.getElementById('btn-eraser').className='tool-btn'+(t==='eraser'?' active-eraser':'');
+}
+
+function updateBrushSize(v){brushSz=+v;document.getElementById('size-label').textContent=v+'px';}
+
+function undoDraw(){
+  if(drawHistory.length<2)return;
+  drawHistory.pop();
+  const canvas=document.getElementById('draw-canvas');
+  const ctx=canvas.getContext('2d');
+  const img=new Image();
+  img.onload=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);};
+  img.src=drawHistory[drawHistory.length-1];
+}
+
+function clearCanvas(){initCanvas();}
+
+// ── AI Prompt ────────────────────────────────
+async function callAI(){
+  const prompt=document.getElementById('ai-prompt').value.trim();
+  if(!prompt)return;
+  const imp=players[0].role==='imposter';
+  const subject=imp?theme.hint:theme.topic;
+  const styleLabel=STYLES.find(s=>s.id===currentArtStyle)?.label||currentArtStyle;
+
+  document.getElementById('ai-gen-btn').disabled=true;
+  document.getElementById('ai-loading').style.display='block';
+  document.getElementById('ai-result').style.display='none';
+  document.getElementById('ai-hint').style.display='none';
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`당신은 창의적인 AI 화가입니다. 사용자의 프롬프트를 바탕으로 "${styleLabel}" 스타일의 그림을 묘사하는 짧은 한국어 문장을 만들어주세요. 반드시 주제 "${subject}"와 관련된 그림이어야 합니다. 2-3문장, 감각적이고 시각적인 묘사로만 답하세요. 이모지 포함 가능.`,
+        messages:[{role:'user',content:`프롬프트: "${prompt}" / 스타일: ${styleLabel}`}],
+      }),
+    });
+    const data=await res.json();
+    currentAiDesc=(data.content?.[0]?.text||'').trim();
+  }catch(e){
+    currentAiDesc=`✨ ${prompt} — ${subject} (${styleLabel})`;
+  }
+
+  document.getElementById('ai-loading').style.display='none';
+  document.getElementById('ai-result').style.display='block';
+  document.getElementById('ai-result').textContent=currentAiDesc;
+  document.getElementById('ai-hint').style.display='block';
+  document.getElementById('ai-gen-btn').disabled=false;
+
+  // Re-paint canvas with watermark
+  const canvas=document.getElementById('draw-canvas');
+  const ctx=canvas.getContext('2d');
+  const prevDataUrl=drawHistory.length>0?drawHistory[drawHistory.length-1]:null;
+  paintBg(ctx,canvas.width,canvas.height);
+  if(prevDataUrl){
+    const img=new Image();
+    img.onload=()=>{ ctx.globalAlpha=1; ctx.drawImage(img,0,0); drawHistory=[...drawHistory,canvas.toDataURL()]; };
+    img.src=prevDataUrl;
+  }else{
+    drawHistory=[canvas.toDataURL()];
+  }
+}
+
+function submitArt(){
+  clearInterval(genTimerInt);
+  const canvas=document.getElementById('draw-canvas');
+  const dataUrl=canvas.toDataURL('image/png');
+  players[0].image={style:currentArtStyle,dataUrl,aiDesc:currentAiDesc||null};
+  // Bot images
+  players.forEach((p,i)=>{
+    if(i>0&&p.isBot)p.image={style:STYLES[Math.floor(Math.random()*STYLES.length)].id,dataUrl:null,aiDesc:null};
+  });
+  showGalleryScreen();
+  showScreen('s-gallery');
+}
+
+// ══════════════════════════════════════════════
+//  GALLERY SCREEN
+// ══════════════════════════════════════════════
+let galBotChatTimers=[];
+
+function showGalleryScreen(){
+  clearInterval(galTimerInt);
+  galBotChatTimers.forEach(clearTimeout);galBotChatTimers=[];
+  galPhase='gallery';
+  selectedVoteId=null;
+
+  document.getElementById('gallery-theme-label').textContent='주제: '+theme.topic;
+
+  // Gallery grid
+  const grid=document.getElementById('gallery-grid');
+  grid.innerHTML='';
+  players.forEach(p=>{
+    const card=document.createElement('div');card.className='gallery-card';
+    card.innerHTML=`<div class="card-img">${p.image?.dataUrl?`<img src="${p.image.dataUrl}" alt="">`:`<div style="font-size:32px;opacity:.3;">🖼️</div>`}${p.image?.aiDesc?`<div class="card-ai-desc">${p.image.aiDesc.slice(0,55)}</div>`:''}</div>
+      <div class="card-info"><div style="color:rgba(255,255,255,.22);font-size:11px;">익명의 작가</div></div>`;
+    if(p.image?.dataUrl)card.onclick=()=>openLightbox(p.image.dataUrl);
+    grid.appendChild(card);
+  });
+
+  // Thumb strip
+  const strip=document.getElementById('thumb-strip');strip.innerHTML='';
+  players.forEach(p=>{
+    const th=document.createElement('div');th.className='thumb';
+    th.style.border=`1px solid ${p.color}44`;
+    if(p.image?.dataUrl)th.innerHTML=`<img src="${p.image.dataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+    else th.innerHTML=`<div style="width:100%;height:100%;background:${p.color}22;display:flex;align-items:center;justify-content:center;font-size:18px;">🎨</div>`;
+    strip.appendChild(th);
+  });
+
+  // Vote list
+  buildVoteList();
+
+  // Bot chats
+  const bots=players.filter(p=>p.isBot).slice(0,3);
+  const lines=[`저 그림이 좀 이상한 것 같은데요... 주제가 "${theme.topic}"인데 맞나요?`,'너무 추상적으로 그린 분이 계신 것 같아요 👀','AI는 보통 배경을 저렇게 처리하지 않나요?','저는 확실히 사람이에요! 제 그림 직접 그렸어요 😅'];
+  bots.forEach((b,i)=>{
+    const t=setTimeout(()=>addChat(b.name,b.color,lines[i%lines.length]),(i+1)*3000);
+    galBotChatTimers.push(t);
+  });
+
+  switchGalTab('gallery');
+  startGalTimer();
+}
+
+function buildVoteList(){
+  const list=document.getElementById('vote-list');list.innerHTML='';
+  players.slice(1).forEach(p=>{
+    const btn=document.createElement('button');btn.className='vote-player';btn.id='vbtn-'+p.id;
+    btn.innerHTML=`<div style="width:42px;height:42px;border-radius:7px;overflow:hidden;flex-shrink:0;border:1px solid ${p.color}44;">${p.image?.dataUrl?`<img src="${p.image.dataUrl}" style="width:100%;height:100%;object-fit:cover;">`:`<div style="width:100%;height:100%;background:${p.color}22;display:flex;align-items:center;justify-content:center;font-size:16px;">🎨</div>`}</div>
+      <div style="flex:1;text-align:left;"><div style="font-weight:700;font-size:12px;">${p.name}</div><div style="font-size:9px;color:rgba(255,255,255,.32);margin-top:1px;">${STYLES.find(s=>s.id===p.image?.style)?.label||'스타일 미상'}</div></div>
+      <div id="vcheck-${p.id}" style="display:none;color:${p.color};font-size:18px;">✓</div>`;
+    btn.onclick=()=>selectVote(p.id,p.color);
+    list.appendChild(btn);
+  });
+}
+
+function selectVote(id,color){
+  selectedVoteId=id;
+  players.forEach(p=>{
+    const btn=document.getElementById('vbtn-'+p.id);
+    const chk=document.getElementById('vcheck-'+p.id);
+    if(!btn)return;
+    btn.style.background=p.id===id?`${color}18`:'rgba(255,255,255,.04)';
+    btn.style.borderColor=p.id===id?color:'rgba(255,255,255,.1)';
+    if(chk)chk.style.display=p.id===id?'block':'none';
+  });
+  document.getElementById('vote-confirm-btn').style.display='block';
+}
+
+function confirmVote(){
+  clearInterval(galTimerInt);
+  showResult(selectedVoteId);
+}
+
+function startGalTimer(){
+  clearInterval(galTimerInt);
+  const total=galPhaseTotals[galPhase];
+  galTimeLeft=total;
+  updateGalTimer(total,total);
+  galTimerInt=setInterval(()=>{
+    galTimeLeft--;
+    updateGalTimer(galTimeLeft,galPhaseTotals[galPhase]);
+    if(galTimeLeft<=0){
+      clearInterval(galTimerInt);
+      if(galPhase==='gallery'){switchGalTab('discuss');startGalTimer();}
+      else if(galPhase==='discuss'){switchGalTab('vote');startGalTimer();}
+      else{showResult(selectedVoteId);}
+    }
+  },1000);
+}
+
+function updateGalTimer(t,total){
+  document.getElementById('gal-timer-bar').style.width=((t/total)*100)+'%';
+  document.getElementById('gal-timer-bar').style.background=t<=10?'#FF6B6B':'#6BCB77';
+  const el=document.getElementById('gal-timer-num');el.textContent=t;el.className='timer-num'+(t<=10?' danger':'');
+}
+
+function switchGalTab(tab){
+  galPhase=tab;
+  ['gallery','discuss','vote'].forEach(t=>{
+    document.getElementById('gtab-'+t).classList.toggle('active',t===tab);
+    const pane=document.getElementById('pane-'+t);
+    pane.style.display=t===tab?(t==='discuss'?'flex':'block'):'none';
+  });
+}
+
+function addChat(player,color,text){
+  const list=document.getElementById('chat-list');
+  const div=document.createElement('div');div.className='chat-msg';
+  div.innerHTML=`<div style="width:24px;height:24px;border-radius:50%;background:${color};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;">🎨</div>
+    <div><div style="font-size:8px;color:${color};margin-bottom:2px;">${player}</div><div class="chat-bubble">${text}</div></div>`;
+  list.appendChild(div);
+  list.scrollTop=list.scrollHeight;
+}
+
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  if(!inp.value.trim())return;
+  addChat(players[0]?.name||'나',players[0]?.color||'#FFD700',inp.value.trim());
+  inp.value='';
+}
+
+function openLightbox(src){
+  const lb=document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src=src;
+  lb.style.display='flex';
+}
+function closeLightbox(){document.getElementById('lightbox').style.display='none';}
+
+// ══════════════════════════════════════════════
+//  RESULT
+// ══════════════════════════════════════════════
+function showResult(votedId){
+  clearInterval(galTimerInt);
+  const imposter=players.find(p=>p.role==='imposter');
+  const correct=imposter?.id===votedId;
+
+  document.getElementById('result-theme-sub').textContent=`주제: ${theme.topic} / 힌트: ${theme.hint}`;
+
+  // verdict
+  const v=document.getElementById('result-verdict');
+  v.style.display='none';
+  v.style.background=correct?'rgba(107,203,119,.11)':'rgba(255,107,107,.11)';
+  v.style.border=`2px solid ${correct?'#6BCB77':'#FF6B6B'}`;
+  v.innerHTML=`<div style="font-size:36px;margin-bottom:5px;">${correct?'🎉':'😈'}</div>
+    <div style="font-size:21px;font-weight:900;color:${correct?'#6BCB77':'#FF6B6B'};">${correct?'예술가 승리!':'AI 화가 승리!'}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.46);margin-top:4px;">${correct?'AI 화가를 찾아냈습니다!':'AI 화가가 완벽하게 속였습니다!'}</div>`;
+
+  // result grid
+  const grid=document.getElementById('result-grid');grid.innerHTML='';
+  players.forEach((p,i)=>{
+    const isImp=p.role==='imposter';
+    const card=document.createElement('div');card.className='result-card';
+    card.style.cssText=`background:${isImp?'rgba(255,107,107,.1)':'rgba(255,255,255,.04)'};border:2px solid ${isImp?'#FF6B6B':'rgba(255,255,255,.08)'};opacity:0;transform:translateY(12px);`;
+    card.innerHTML=`<div style="height:88px;position:relative;overflow:hidden;background:${isImp?'linear-gradient(135deg,#2d0a0a,#3d1010)':'#111120'};display:flex;align-items:center;justify-content:center;">
+      ${p.image?.dataUrl?`<img src="${p.image.dataUrl}" style="width:100%;height:100%;object-fit:cover;">`:`<div style="font-size:28px;">${p.avatar}</div>`}
+      ${isImp?`<div style="position:absolute;top:4px;right:5px;background:#FF6B6B;color:#fff;font-size:8px;padding:2px 5px;border-radius:4px;font-weight:800;">🤖 AI</div>`:''}
+    </div>
+    <div style="padding:6px 9px;">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <div style="width:12px;height:12px;border-radius:50%;background:${p.color};"></div>
+        <span style="font-size:10px;font-weight:700;">${p.name}</span>
+      </div>
+      <div style="font-size:8px;margin-top:2px;color:${isImp?'#FF6B6B':'rgba(255,255,255,.3)'};">${isImp?'🤖 AI 화가':'🎨 예술가'} · ${STYLES.find(s=>s.id===p.image?.style)?.label||'-'}</div>
+      ${p.image?.aiDesc?`<div style="font-size:8px;color:rgba(255,255,255,.25);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${p.image.aiDesc.slice(0,45)}</div>`:''}
+    </div>`;
+    if(p.image?.dataUrl)card.querySelector('div').onclick=()=>openLightbox(p.image.dataUrl);
+    grid.appendChild(card);
+    setTimeout(()=>{card.style.opacity='1';card.style.transform='translateY(0)';card.style.transition='opacity .5s,transform .5s';},700+i*120);
+  });
+
+  showScreen('s-result');
+
+  setTimeout(()=>{
+    v.style.display='block';
+    setTimeout(()=>{ document.getElementById('next-round-btn').style.display='block'; },600);
+  },900);
+}
+
+function nextRound(){
+  round++;
+  document.getElementById('round-badge').textContent='R'+round;
+  const shuffled=shuffle(players);
+  players=shuffled.map((p,i)=>({...p,role:i===0?'imposter':'artist',image:null}));
+  theme=THEMES[Math.floor(Math.random()*THEMES.length)];
+  selectedVoteId=null;
+  document.getElementById('next-round-btn').style.display='none';
+  document.getElementById('chat-list').innerHTML='';
+  document.getElementById('result-verdict').style.display='none';
+  showRoleScreen();
+  showScreen('s-role');
+}
+</script>
+</body>
+</html>
